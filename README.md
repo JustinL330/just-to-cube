@@ -1,4 +1,4 @@
-# jus-cubing
+# just-to-cube
 
 A responsive, independently built cubing timer and WCA data explorer, inspired by csTimer and DCTimer.
 

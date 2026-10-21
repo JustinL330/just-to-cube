@@ -17,7 +17,7 @@ else if(kind==='competitions')upstream=`${root}/api/v0/competitions?q=${encodeUR
 else if(kind==='person'&&/^\d{4}[A-Z]{4}\d{2}$/.test(q.toUpperCase()))upstream=`${root}/api/v0/persons/${q.toUpperCase()}`;
 else return Response.json({error:'not_found'},{status:404});
 const key=new Request(url.toString()); const cache=globalThis.caches?.default; const hit=await cache?.match(key);if(hit)return hit;
-try{const r=await fetch(upstream,{headers:{'Accept':'application/json','User-Agent':'jus-cubing/1.0 (public cubing data)'},signal:AbortSignal.timeout(12000)}); if(!r.ok)throw Error('upstream');const data=await r.json();
+try{const r=await fetch(upstream,{headers:{'Accept':'application/json','User-Agent':'just-to-cube/1.0 (public cubing data)'},signal:AbortSignal.timeout(12000)}); if(!r.ok)throw Error('upstream');const data=await r.json();
 let results;if(kind==='people')results=(data.result||data.users||data).slice(0,25).map(p=>({name:p.name,id:p.wca_id||p.id,country:p.country?.name||p.country_iso2||'',url:`${root}/persons/${encodeURIComponent(p.wca_id||p.id)}`}));
 else if(kind==='competitions')results=(Array.isArray(data)?data:data.result||[]).slice(0,25).map(c=>({name:c.name,id:c.id,country:c.country_iso2||'',city:c.city||'',date:c.start_date,url:`${root}/competitions/${encodeURIComponent(c.id)}`}));
 else results={name:data.person?.name||data.name,id:q.toUpperCase(),records:data.personal_records||{},url:`${root}/persons/${q.toUpperCase()}`};
