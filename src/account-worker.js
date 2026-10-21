@@ -28,7 +28,7 @@ export async function handleAccount(request,env){
   if(path==='/api/account/me'&&request.method==='GET'){const u=await sessionUser(request,db,dev);return json({configured:true,user:profile(u)})}
   if(['/api/account/register','/api/account/login'].includes(path)&&request.method==='POST'){
    const b=await bodyJSON(request,4096),username=typeof b.name==='string'?b.name.trim().normalize('NFKC').toLowerCase():'';
-   if(!/^[\p{L}\p{N}_-]{3,30}$/u.test(username)||typeof b.password!=='string'||b.password.length<12||b.password.length>128)return json({error:'credentials_format'},400);
+   if(!/^[\p{L}\p{N}_-]{3,30}$/u.test(username)||typeof b.password!=='string'||b.password.length<8||b.password.length>128)return json({error:'credentials_format'},400);
    const ip=await digest(request.headers.get('CF-Connecting-IP')||'unknown');
    if(!await limit(db,'ip:'+ip,15,900000)||!await limit(db,'user:'+username,10,900000))return json({error:'account_rate'},429,{'Retry-After':'900'});
    let u=await db.prepare('SELECT * FROM users WHERE username=?').bind(username).first();
@@ -58,7 +58,7 @@ export async function handleAccount(request,env){
    await db.prepare('UPDATE users SET display_name=?,bio=? WHERE id=?').bind(b.name.trim(),b.bio,user.id).run();return json({user:profile({...user,display_name:b.name.trim(),bio:b.bio})});
   }
   if(path==='/api/account/password'&&request.method==='PUT'){
-   const b=await bodyJSON(request,4096);if(typeof b.current!=='string'||typeof b.password!=='string'||b.password.length<12||b.password.length>128)return json({error:'credentials_format'},400);
+   const b=await bodyJSON(request,4096);if(typeof b.current!=='string'||typeof b.password!=='string'||b.password.length<8||b.password.length>128)return json({error:'credentials_format'},400);
    if(!await limit(db,'password:'+user.id,8,900000))return json({error:'account_rate'},429);
    const stored=await db.prepare('SELECT password_hash,salt FROM users WHERE id=?').bind(user.id).first();if(!stored||!await verifyPassword(b.current,stored.password_hash,stored.salt))return json({error:'wrong_credentials'},401);
    const {salt,hash}=await createPasswordRecord(b.password);await db.batch([db.prepare('UPDATE users SET password_hash=?,salt=? WHERE id=?').bind(hash,salt,user.id),db.prepare('DELETE FROM auth_sessions WHERE user_id=?').bind(user.id)]);
