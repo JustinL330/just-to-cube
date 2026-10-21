@@ -22,3 +22,62 @@ html{height:100%;overflow:hidden;overscroll-behavior:none}body{height:100dvh;ove
 @media(max-width:760px){header{padding:4px 4% 3px;gap:2px;min-height:0}.brand img{width:28px;height:28px;border-radius:7px}.header-right{gap:5px}.header-right .icon-button{width:30px;height:30px;font-size:19px}.header-right .theme-toggle{width:30px;height:30px}.header-right select{padding:3px;max-width:130px;font-size:11px}header nav{gap:3px}.nav{padding:4px 2px;font-size:10px;line-height:1.2;min-height:34px}.nav>span:first-child{font-size:14px;line-height:1.1;margin:0 0 2px}.page-heading h1{font-size:22px}#timerPage>.page-heading{margin-bottom:8px;align-items:center;gap:5px}#timerPage .page-heading .eyebrow{display:none}.session-picker select{max-width:125px;font-size:10px}.session-picker{padding:1px 3px 1px 8px}.session-picker .icon-button{width:25px;height:27px}.scramble-card .icon-button{width:28px;height:28px;font-size:19px}.stat{padding:6px 9px}.stat strong{font-size:22px}.average-controls{padding:12px}.average-controls p{font-size:10px}}
 
 #trainingDialog{width:min(94vw,760px);max-height:90dvh;overflow:auto;overscroll-behavior:contain}#trainingDialog h3{margin:22px 0 10px;font-size:15px}#trainingDialog select{max-width:100%}#phaseNamesInput{display:block;width:100%;padding:10px;margin-top:10px;border:1px solid var(--line);border-radius:8px;background:var(--soft);color:var(--ink);font:inherit}#sessionStatistics{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px}#sessionStatistics>div{border:1px solid var(--line);padding:10px;border-radius:8px}#sessionStatistics span{display:block;color:var(--muted);font-size:11px}#sessionStatistics strong{font:17px ui-monospace,monospace}#trainingGraph svg{width:100%;height:auto;margin-top:15px}#phaseStatus{white-space:pre-line;margin:2px 0;max-width:100%}#phaseStatus:empty{display:none}#solvePhases{white-space:pre-line}.timer-toolbar{flex-wrap:wrap;gap:5px}body.timing #phaseStatus{color:var(--green)}
+
+/* Long algorithms get the full workspace width and keep a readable type size.
+   The timer page can scroll vertically instead of squeezing or clipping moves. */
+#timerPage.long-scramble-page{overflow-y:auto;overflow-x:hidden}
+.workspace.wide-scramble{
+  flex:1 0 auto;
+  grid-template-rows:auto minmax(210px,1fr) auto;
+  align-content:start;
+  gap:12px 22px;
+}
+.wide-scramble .main-column{display:contents}
+.wide-scramble .scramble-card{
+  grid-column:1/-1;
+  grid-row:1;
+  min-width:0;
+  padding:16px 22px;
+  max-height:none;
+  overflow:visible;
+}
+.wide-scramble #scramble{
+  min-height:200px;
+  height:auto;
+  max-height:none;
+  margin:12px 0;
+  font-size:19px;
+  line-height:1.85;
+  letter-spacing:.25px;
+  white-space:pre-wrap;
+  overflow:visible;
+  overflow-wrap:normal;
+  word-break:normal;
+}
+.wide-scramble .timer-card{grid-column:1;grid-row:2;min-height:210px}
+.wide-scramble .stat-grid{grid-column:1;grid-row:3}
+.wide-scramble aside{grid-column:2;grid-row:2/4;overflow:visible;min-height:0}
+.wide-scramble .progress-card{display:none}
+#expandedScramble{font-size:24px;line-height:1.85;word-break:normal}
+@media(min-width:1001px){
+  header{height:62px;gap:14px}
+  .brand{font-size:22px}
+  .brand img{width:32px;height:32px}
+  .nav{padding:6px 10px;font-size:12px}
+  .nav>span:first-child{font-size:17px}
+}
+@media(max-width:760px){
+  .workspace.wide-scramble{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(190px,1fr) auto;gap:10px}
+  .wide-scramble .scramble-card{padding:12px 14px}
+  .wide-scramble #scramble{min-height:170px;font-size:16px;line-height:1.85;letter-spacing:0}
+  .wide-scramble .timer-card{grid-column:1;grid-row:2;min-height:190px}
+  .wide-scramble .stat-grid{grid-column:1;grid-row:3}
+  #expandedScramble{font-size:18px}
+}
+
+.session-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
+.clear-session-button{margin-top:0;font-size:11px}
+.clear-session-button:disabled{cursor:default}
+#clearSessionName{overflow-wrap:anywhere}
+#sessionsPage>.page-heading>.inline{flex-wrap:wrap}
+@media(max-width:600px){.table-card>.card-top{align-items:flex-start;flex-wrap:wrap}.session-actions{justify-content:flex-start}}

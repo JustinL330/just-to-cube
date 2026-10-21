@@ -1,5 +1,9 @@
 export const languages={en:'🇬🇧 English',zh_hk:'🇭🇰 繁體中文',zh_cn:'🇨🇳 简体中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch'};
 const rows={
+clearSessionResults:['Clear all results','清空本組成績','清空本组成绩','すべての記録を削除','모든 기록 지우기','Effacer tous les résultats','Alle Ergebnisse löschen'],
+clearSessionConfirm:['Clear all {count} results in this session?','確定清空此組的全部 {count} 筆成績？','确定清空此组的全部 {count} 条成绩？','このセッションの全{count}件の記録を削除しますか？','이 세션의 기록 {count}개를 모두 지울까요?','Effacer les {count} résultats de cette session ?','Alle {count} Ergebnisse dieser Sitzung löschen?'],
+clearSessionHelp:['The session and other sessions stay intact. Undo is available for 10 seconds after clearing.','保留此組及其他組別。清空後 10 秒內可撤銷。','保留此组及其他组别。清空后 10 秒内可撤销。','セッション自体と他のセッションは残ります。削除後10秒以内は元に戻せます。','세션과 다른 세션은 유지됩니다. 지운 뒤 10초 동안 실행 취소할 수 있습니다.','La session et les autres sessions sont conservées. Vous avez 10 secondes pour annuler.','Die Sitzung und andere Sitzungen bleiben erhalten. Rückgängig ist 10 Sekunden lang möglich.'],
+sessionCleared:['Cleared {count} results','已清空 {count} 筆成績','已清空 {count} 条成绩','{count}件の記録を削除しました','기록 {count}개를 지웠습니다','{count} résultats effacés','{count} Ergebnisse gelöscht'],
 enablePhases:['Enable phase timing','啟用分段計時','启用分段计时','区間計測を有効にする','구간 측정 사용','Activer le chronométrage par phase','Phasenmessung aktivieren'],
 phaseCount:['Number of phases','分段數目','分段数量','区間数','구간 수','Nombre de phases','Anzahl der Phasen'],
 phaseCountHelp:['Choose 2–8 phases. No names are required.','請選擇 2–8 段，不需要填寫名稱。','请选择 2–8 段，不需要填写名称。','2〜8区間を選択。名前は不要です。','2–8개 구간을 선택하세요. 이름은 필요 없습니다.','Choisissez 2 à 8 phases. Aucun nom requis.','Wähle 2–8 Phasen. Namen sind nicht erforderlich.'],
