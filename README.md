@@ -154,3 +154,12 @@ Open **Messages**, sign in, and choose a separate messaging passphrase of at lea
 - `migrations/0003_messages.sql` defines the tables and indexes. The messaging Worker also initializes these idempotently on first authenticated use, allowing existing Pages databases to receive this feature through the usual Git deployment. Requests require the existing HttpOnly session, same-origin writes, ownership checks, size limits and a per-account send rate limit. Inbox queries include only the authenticated sender or recipient, use monotonic sequence cursors and return at most 100 records per page. Message IDs make retries idempotent.
 
 Tests cover vault recovery on a second device, wrong passphrases, ciphertext/identity tampering, unrelated keys, real D1 participant isolation, CSRF, input validation, immutable public keys, encrypted storage and retry deduplication.
+
+## Search results and region filters
+
+Explore searches competitor names and WCA IDs (including prefixes), competition names/cities, and WCA countries/represented regions. Choose a region to search it alone or combine it with a name/ID. Full region names and common aliases such as Hong Kong, 香港, UK and USA also work in the query field. The Personal records mode requires a full WCA ID; competitor cards offer a Personal records button.
+
+Searches with 0–20 matches display immediately. Searches with 21–100 matches show the count and ask whether to show all matches; cancelling returns to refining the criteria. More than 100 matches produces a narrowing prompt and no long result list. Exactly 100 still permits confirmation. Changing any criteria clears pending results and invalidates old requests. All seven interface languages include these controls and warnings.
+
+The backend uses the WCA person directory JSON endpoint (`/persons.json`, with `search`, `region`, `limit` and `offset`) for totals and represented-region filtering, rather than the capped autocomplete endpoint. Region IDs are from the public WCA countries catalogue. The directory can contain historical representations, which are retained as distinct entries with the corresponding region. Competitions use the paginated v0 API, its Total/Per-Page headers, and additional pages when necessary; incomplete upstream results return an error instead of claiming to show all matches. Data remains cached for five minutes.
+

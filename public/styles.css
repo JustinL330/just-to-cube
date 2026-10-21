@@ -100,3 +100,4 @@ header .account-button{width:auto;display:inline-flex;align-items:center;gap:6px
 .password-field>input{flex:1 1 0;min-width:0;width:0}
 .password-field>.password-toggle{flex:0 0 auto;align-self:center;margin:0;min-height:44px;min-width:64px;padding:8px 12px;font-size:12px}
 .password-toggle:focus-visible{outline:3px solid var(--green);outline-offset:2px}
+.search-region{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px}.search-region select{max-width:100%;flex:1;min-width:180px}.search-warning{border-left:3px solid var(--green);padding:12px;background:var(--soft)}#results .result-card>a{font-weight:600}#results .result-card .text-button{justify-self:start;margin-top:8px}
