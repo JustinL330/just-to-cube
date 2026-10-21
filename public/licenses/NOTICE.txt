@@ -1,0 +1,10 @@
+This app distributes cubing.js 0.66.1 under the Mozilla Public License 2.0.
+Copyright the cubing.js contributors. Source: https://github.com/cubing/cubing.js
+Pinned upstream source: https://www.npmjs.com/package/cubing/v/0.66.1
+Files are bundled/minified for local hosting; no upstream source logic is changed.
+License: /licenses/MPL-2.0.txt
+
+three.js: MIT, copyright the three.js authors. /licenses/three-MIT.txt
+random-uint-below: MIT. /licenses/random-uint-below.txt
+@cubing/lazy-promise: MIT, copyright Lucas Garron.
+App original source: MIT; see the repository LICENSE.
