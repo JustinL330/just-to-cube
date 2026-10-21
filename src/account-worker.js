@@ -1,14 +1,12 @@
 import {validBackup,EVENTS,average,format,value} from './core.js';
+import {createPasswordRecord,verifyPassword,needsPasswordUpgrade,DUMMY_PASSWORD_RECORD} from './passwords.js';
 const COOKIE='__Host-jus-session',AGE=60*60*24*30;
 const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Vary':'Cookie'};
 const json=(data,status=200,extra={})=>Response.json(data,{status,headers:{...headers,...extra}});
 const enc=new TextEncoder();
 const hex=a=>Array.from(new Uint8Array(a),b=>b.toString(16).padStart(2,'0')).join('');
-const unhex=s=>Uint8Array.from(s.match(/../g)||[],b=>parseInt(b,16));
 const random=()=>hex(crypto.getRandomValues(new Uint8Array(32)));
 const digest=async s=>hex(await crypto.subtle.digest('SHA-256',enc.encode(s)));
-export async function passwordHash(password,salt){const key=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveBits']);return hex(await crypto.subtle.deriveBits({name:'PBKDF2',salt:unhex(salt),iterations:600000,hash:'SHA-256'},key,256))}
-function same(a,b){const aa=unhex(a),bb=unhex(b);if(aa.length!==bb.length)return false;if(crypto.subtle.timingSafeEqual)return crypto.subtle.timingSafeEqual(aa,bb);let d=0;for(let i=0;i<aa.length;i++)d|=aa[i]^bb[i];return d===0}
 const cookie=(token,age=AGE,dev=false)=>`${dev?'jus-dev-session':COOKIE}=${token}; Path=/; HttpOnly; ${dev?'':'Secure; '}SameSite=Lax; Max-Age=${age}`;
 const tokenFrom=(request,dev=false)=>{const name=dev?'jus-dev-session':COOKIE;return(request.headers.get('Cookie')||'').split(';').map(s=>s.trim()).find(s=>s.startsWith(name+'='))?.slice(name.length+1)||''};
 export async function sessionUser(request,db,dev=false){const token=tokenFrom(request,dev);if(!/^[a-f0-9]{64}$/.test(token))return null;return db.prepare('SELECT u.id,u.username,u.display_name,u.bio,u.timezone,u.created_at FROM auth_sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>?').bind(await digest(token),Date.now()).first()}
@@ -36,11 +34,16 @@ export async function handleAccount(request,env){
    let u=await db.prepare('SELECT * FROM users WHERE username=?').bind(username).first();
    if(path.endsWith('/register')){
     if(u)return json({error:'name_taken'},409);
-    const salt=random(),hash=await passwordHash(b.password,salt),id=crypto.randomUUID(),created=new Date().toISOString();
+    const {salt,hash}=await createPasswordRecord(b.password),id=crypto.randomUUID(),created=new Date().toISOString();
     try{await db.batch([db.prepare('INSERT INTO users(id,username,display_name,bio,timezone,password_hash,salt,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(id,username,b.name.trim(),'',timezone(b.timezone),hash,salt,created),db.prepare('INSERT INTO account_data(user_id,payload,revision,updated_at) VALUES(?,\'null\',0,?)').bind(id,created)])}catch(e){if(String(e).includes('UNIQUE'))return json({error:'name_taken'},409);throw e}
     u={id,username,display_name:b.name.trim(),bio:'',timezone:timezone(b.timezone),created_at:created};
    }else{
-    const candidate=await passwordHash(b.password,u?.salt||'0'.repeat(64));if(!u||!same(candidate,u.password_hash))return json({error:'wrong_credentials'},401);
+    const correct=await verifyPassword(b.password,u?.password_hash||DUMMY_PASSWORD_RECORD,u?.salt);if(!u||!correct)return json({error:'wrong_credentials'},401);
+    if(needsPasswordUpgrade(u.password_hash,u.salt)){
+     const upgraded=await createPasswordRecord(b.password);
+     const changed=await db.prepare('UPDATE users SET password_hash=?,salt=? WHERE id=? AND password_hash=?').bind(upgraded.hash,upgraded.salt,u.id,u.password_hash).run();
+     if(!changed.meta.changes)return json({error:'wrong_credentials'},401);
+    }
    }
    return json({user:profile(u)},200,{'Set-Cookie':await startSession(db,u,dev)});
   }
@@ -57,8 +60,8 @@ export async function handleAccount(request,env){
   if(path==='/api/account/password'&&request.method==='PUT'){
    const b=await bodyJSON(request,4096);if(typeof b.current!=='string'||typeof b.password!=='string'||b.password.length<12||b.password.length>128)return json({error:'credentials_format'},400);
    if(!await limit(db,'password:'+user.id,8,900000))return json({error:'account_rate'},429);
-   const stored=await db.prepare('SELECT password_hash,salt FROM users WHERE id=?').bind(user.id).first();if(!same(await passwordHash(b.current,stored.salt),stored.password_hash))return json({error:'wrong_credentials'},401);
-   const salt=random();await db.batch([db.prepare('UPDATE users SET password_hash=?,salt=? WHERE id=?').bind(await passwordHash(b.password,salt),salt,user.id),db.prepare('DELETE FROM auth_sessions WHERE user_id=?').bind(user.id)]);
+   const stored=await db.prepare('SELECT password_hash,salt FROM users WHERE id=?').bind(user.id).first();if(!stored||!await verifyPassword(b.current,stored.password_hash,stored.salt))return json({error:'wrong_credentials'},401);
+   const {salt,hash}=await createPasswordRecord(b.password);await db.batch([db.prepare('UPDATE users SET password_hash=?,salt=? WHERE id=?').bind(hash,salt,user.id),db.prepare('DELETE FROM auth_sessions WHERE user_id=?').bind(user.id)]);
    return json({ok:true},200,{'Set-Cookie':await startSession(db,user,dev)});
   }
   if(path==='/api/account/data'){
