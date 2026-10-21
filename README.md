@@ -122,3 +122,23 @@ The fixed order is **DeepSeek → NVIDIA → Next Router**. Missing keys are ski
 - Next Router: Secret `NEXT_ROUTER_API_KEY` or the existing Secret `NEXT_ROUTER`. Optional `NEXT_ROUTER_MODEL` (default `deepseek-v4-flash`). The fixed endpoint is `https://next-router.com/v1/chat/completions`, as shown in Next Router’s model API example at https://next-router.com/models.
 
 Keys stay in Cloudflare Secrets and are never returned by `/api/ai`. Add secrets to the project serving the domain (currently the `jus-cubing` Pages production project) and deploy after changes. GET `/api/ai` lists the configured providers in order without making paid generation calls or exposing keys. Each attempt gets an equal share of a 42-second upstream budget, so the chain fits the browser’s 50-second wait. Site rate-limit rejections do not trigger upstream fallback. Client cancellation stops any further attempts when the server observes it. Accounts may still charge for an attempt already received.
+
+### Public and private forum zones
+
+Open `/#forum` (the existing `/#checkins` address still works). The original check-in feed is the public zone; records stay in `checkins`, and are read together with new forum posts. Daily check-ins and optional practice summaries remain available. New posts can contain text, up to three images, or both. Images are resized in the browser and limited to 512 KiB each (JPG, PNG or WebP). They are stored in the existing D1 database, with no external image CDN or extra storage binding.
+
+A logged-in user can create a private zone with a 12–128 character password. The creator can add existing accounts by exact username immediately, remove members, change the zone password, and delete the zone. Members may leave themselves; the creator must delete rather than leave their own zone. Password rotation does not change existing memberships. Leaving or removal revokes access; a fresh invitation or the current password permits re-entry. Removal is not a permanent ban against someone who still knows the password.
+
+Private zones are listed only for their members. Knowing a zone ID or image URL is insufficient to read private posts or images. All reads and writes check membership on the server. Only the creator manages the membership list. Authors can delete their own posts; creators can moderate posts in their private zones. Deleting a zone cascades to its posts, attachments and memberships. The interface requires explicit confirmation before deletion.
+
+#### Password and content protection
+
+Zone passwords use the existing salted PBKDF2-SHA256 password record format (600,000 iterations), and are never returned by the API. Password joining is rate limited. Private text and images use authenticated AES-256-GCM encryption at rest, with a random nonce for each item and a zone-specific HKDF-derived key. A password change does not re-encrypt content, so it cannot lock out existing members.
+
+Set **`FORUM_ENCRYPTION_KEY`** as an encrypted Cloudflare Pages **Production** secret before deploying this feature: a cryptographically random 32-byte value encoded as Base64. This key must remain stable and must not be committed to Git, exposed to browsers, reused from an AI provider key, or replaced when changing a zone password. Preserve it securely along with database backups. Changing or losing it without a data migration makes existing private content unreadable. Configure a separate key/database for any isolated preview or staging environment; do not share production data with untrusted previews.
+
+This is server-side encryption, **not end-to-end encryption**: the Worker decrypts authorized responses, and a server administrator with the key can access content. Public posts remain public. Zone names, authors, membership and timestamps are metadata stored unencrypted. Private APIs and attachments use `Cache-Control: no-store, private`, vary by cookie, and bypass the offline service worker. Revocation blocks subsequent requests; it cannot retract content someone has already viewed or saved.
+
+The idempotent forum schema bootstrap (`src/forum-schema.js`, matching `migrations/0002_forum.sql`) creates only the new forum tables and indexes on first use, leaving existing accounts and posts intact. Account tables must already exist. No manual production SQL step is needed for this existing deployment.
+
+Validation: `node --test test/forum.test.mjs` checks real Worker/D1 authorization, direct invitations, password joining, membership removal and exit, password rotation, encryption and tamper rejection, original public-feed preservation, image access, ownership, and cascading deletion. `npm test` runs the full suite.

@@ -60,7 +60,7 @@ export function initAccount({language,getData,setData,guestData,sessionId,onStat
  }
  async function loadFeed(){try{const d=await api('/api/checkins');feed=d.posts;feedState='';renderFeed()}catch{feedState='accountError'}update()}
  $('#checkinRefresh').onclick=loadFeed;
- $('#checkinForm').onsubmit=async e=>{e.preventDefault();if(!user||busy)return;busy=true;update();try{if(pending){busy=false;if(!await save())throw Error(conflict?'sync_conflict':'accountError');busy=true}await api('/api/checkins','POST',{text:$('#checkinText').value,share:$('#checkinShare').checked,session:sessionId()});$('#checkinText').value='';await loadFeed();feedState='posted'}catch(e){feedState=e.message}finally{busy=false;update()}};
+ $('#checkinForm').onsubmit=async e=>{e.preventDefault();if(!user||busy)return;busy=true;update();try{if(pending){busy=false;if(!await save())throw Error(conflict?'sync_conflict':'accountError');busy=true}await api('/api/checkins','POST',{text:$('#checkinText').value,share:$('#checkinShare').checked,session:sessionId()});$('#checkinText').value='';await loadFeed();feedState='posted';document.dispatchEvent(new Event('jus-checkin-posted'))}catch(e){feedState=e.message}finally{busy=false;update()}};
  window.addEventListener('online',()=>{if(pending)save()});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&pending)save()});
  const ready=(async()=>{try{const d=await api('/api/account/me');configured=d.configured;if(d.user)await attach(d.user)}catch{configured=false;messageKey='accountError'}finally{checking=false;update()}})();
  update();return {changed,save,ready,update:()=>{update();renderFeed()},loadFeed,get user(){return user}};
