@@ -1,0 +1,37 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile,mkdir} from 'node:fs/promises';
+import {build} from 'esbuild';
+import {Miniflare} from 'miniflare';
+import {dayInZone} from '../src/account-worker.js';
+import {mergePractice} from '../src/account.js';
+test('account-local check-in dates respect time zones',()=>{const d=new Date('2026-10-21T17:00:00Z');assert.equal(dayInZone('Asia/Hong_Kong',d),'2026-10-22');assert.equal(dayInZone('America/New_York',d),'2026-10-21')});
+test('merging practice preserves sessions, unions solve IDs, and keeps chosen local edits',()=>{const s={id:'s',name:'333',event:'333',solves:[{id:'a',ms:1000,date:'2026-10-21'}]},a={version:1,sessions:[s]},b={version:1,sessions:[{...s,solves:[{id:'a',ms:2000,date:'2026-10-21'},{id:'b',ms:3000,date:'2026-10-22'}]}]};const r=mergePractice(a,b);assert.equal(r.sessions[0].solves.length,2);assert.equal(r.sessions[0].solves[0].ms,2000);assert.equal(a.sessions[0].solves[0].ms,1000)});
+test('real Worker and SQLite account lifecycle, ownership, revisions and authenticated check-ins',{timeout:60000},async()=>{
+ await mkdir('.wrangler/test',{recursive:true});await build({entryPoints:['worker.js'],outfile:'.wrangler/test/worker.mjs',bundle:true,format:'esm',platform:'browser'});
+ const mf=new Miniflare({modules:true,compatibilityDate:'2026-10-21',scriptPath:'.wrangler/test/worker.mjs',d1Databases:{DB:'test-account-db'}});
+ try{const db=await mf.getD1Database('DB');await db.exec(await readFile('migrations/0001_accounts.sql','utf8'));
+ let ip=0;const call=async(path,method='GET',body,cookie='',origin='https://test.cubing')=>mf.dispatchFetch('https://test.cubing'+path,{method,headers:{Origin:origin,'Content-Type':'application/json','CF-Connecting-IP':'test-'+(++ip),Cookie:cookie},body:body?JSON.stringify(body):undefined});
+ const password='cube-practice-test-password';let r=await call('/api/account/register','POST',{name:'cuber_a',password,timezone:'Asia/Hong_Kong'});assert.equal(r.status,200);const cookieA=r.headers.get('Set-Cookie').split(';')[0];assert.match(r.headers.get('Set-Cookie'),/HttpOnly; Secure; SameSite=Lax/);assert.doesNotMatch(JSON.stringify(await r.json()),/password_hash|salt/);
+ r=await call('/api/account/register','POST',{name:'cuber_b',password});assert.equal(r.status,200);const cookieB=r.headers.get('Set-Cookie').split(';')[0];
+ assert.equal((await call('/api/checkins','POST',{text:'No login'})).status,401);
+ assert.equal((await call('/api/account/profile','PUT',{name:'No',bio:''},cookieA,'https://evil.test')).status,403);
+ assert.equal((await call('/api/account/login','POST',{name:'cuber_a',password:'incorrect-password'})).status,401);
+ r=await call('/api/account/profile','PUT',{name:'Test Cuber',bio:'Practising F2L'},cookieA);assert.equal((await r.json()).user.name,'Test Cuber');
+ const data={version:1,settings:{language:'en',dark:false,inspection:false},sessions:[{id:'s1',name:'3x3',event:'333',solves:[{id:'solve1',ms:12345,penalty:'OK',date:new Date().toISOString(),scramble:'R U'}]}]};
+ r=await call('/api/account/data','PUT',{data,revision:0},cookieA);assert.equal((await r.json()).revision,1);
+ assert.equal((await call('/api/account/data','PUT',{data,revision:0},cookieA)).status,409);
+ r=await call('/api/account/data','GET',undefined,cookieB);assert.equal((await r.json()).data,null);
+ r=await call('/api/account/data','GET',undefined,cookieA);assert.equal((await r.json()).data.sessions[0].solves[0].date,data.sessions[0].solves[0].date);
+ assert.equal((await call('/api/checkins','POST',{text:'Practised today',share:true,session:'s1',summary:'forged'},cookieA)).status,200);
+ assert.equal((await call('/api/checkins','POST',{text:'Again'},cookieA)).status,409);
+ const feed=await (await call('/api/checkins')).json();assert.equal(feed.posts.length,1);assert.equal(feed.posts[0].summary.best,'12.345');assert.equal(feed.posts[0].display_name,'Test Cuber');
+ assert.equal((await call('/api/checkins/'+feed.posts[0].id,'DELETE',{},cookieB)).status,404);
+ assert.equal((await call('/api/checkins/'+feed.posts[0].id,'DELETE',{},cookieA)).status,200);
+ const stored=await db.prepare('SELECT password_hash,salt FROM users WHERE username=?').bind('cuber_a').first();assert.equal(stored.password_hash.length,64);assert.equal(stored.salt.length,64);assert.notEqual(stored.password_hash,password);
+ r=await call('/api/account/password','PUT',{current:password,password:'a-different-long-password'},cookieA);assert.equal(r.status,200);const newCookie=r.headers.get('Set-Cookie').split(';')[0];
+ assert.equal((await (await call('/api/account/me','GET',undefined,cookieA)).json()).user,null);
+ assert.equal((await call('/api/account/logout','POST',{},newCookie)).status,200);
+ assert.equal((await (await call('/api/account/me','GET',undefined,newCookie)).json()).user,null);
+ }finally{await mf.dispose()}
+});

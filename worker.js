@@ -1,6 +1,10 @@
+import {handleAI} from './src/ai-worker.js';
+import {handleAccount} from './src/account-worker.js';
 const root='https://www.worldcubeassociation.org';
 export default {async fetch(request,env,ctx){
 const url=new URL(request.url); if(!url.pathname.startsWith('/api/'))return env.ASSETS.fetch(request);
+if(url.pathname==='/api/ai')return handleAI(request,env);
+if(url.pathname.startsWith('/api/account/')||url.pathname==='/api/checkins'||url.pathname.startsWith('/api/checkins/'))return handleAccount(request,env);
 if(request.method!=='GET')return Response.json({error:'method_not_allowed'},{status:405});
 const q=(url.searchParams.get('q')||'').trim(); if(q.length<2||q.length>100)return Response.json({error:'invalid_query'},{status:400});
 let upstream,kind=url.pathname.slice(5);

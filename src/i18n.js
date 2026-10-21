@@ -1,5 +1,12 @@
-export const languages={en:'English',zh_hk:'繁體中文',zh_cn:'简体中文',ja:'日本語',ko:'한국어',fr:'Français',de:'Deutsch'};
+export const languages={en:'🇬🇧 English',zh_hk:'🇭🇰 繁體中文',zh_cn:'🇨🇳 简体中文',ja:'🇯🇵 日本語',ko:'🇰🇷 한국어',fr:'🇫🇷 Français',de:'🇩🇪 Deutsch'};
 const rows={
+wcaTypes:['WCA events','WCA 項目','WCA 项目','WCA種目','WCA 종목','Épreuves WCA','WCA-Disziplinen'],
+otherPuzzles:['Other puzzles','其他魔方','其他魔方','その他のパズル','기타 퍼즐','Autres puzzles','Weitere Puzzles'],
+trainingTypes:['Training','專項練習','专项练习','トレーニング','훈련','Entraînement','Training'],
+randomMoveNote:['Random-move practice scramble · not random-state','隨機轉動練習打亂 · 非隨機狀態','随机转动练习打乱 · 非随机状态','ランダム手順の練習用スクランブル','무작위 회전 연습용 스크램블','Mouvements aléatoires pour l’entraînement','Zufällige Zugfolge zum Üben'],
+noPreview:['Preview is not available for this puzzle.','此魔方暫不提供預覽。','此魔方暂不提供预览。','このパズルのプレビューはありません。','이 퍼즐의 미리보기는 없습니다.','Aperçu indisponible pour ce puzzle.','Für dieses Puzzle ist keine Vorschau verfügbar.'],
+
+light:['Light mode','淺色模式','浅色模式','ライトモード','라이트 모드','Mode clair','Heller Modus'],
 tagline:['A little practice. A little faster.','每天練一點，進步多一點。','每天练一点，进步多一点。','少しの練習で、もっと速く。','조금씩 연습하고, 더 빠르게.','Un peu de pratique. Un peu plus vite.','Ein wenig üben. Ein wenig schneller.'],
 timer:['Timer','計時器','计时器','タイマー','타이머','Chronomètre','Timer'],explore:['Explore','資料搜尋','资料搜索','データ検索','데이터 검색','Explorer','Entdecken'],sessions:['Sessions','練習紀錄','练习记录','セッション','세션','Sessions','Sitzungen'],settings:['Settings','設定','设置','設定','설정','Réglages','Einstellungen'],practice:['YOUR PRACTICE SPACE','你的練習空間','你的练习空间','あなたの練習スペース','나만의 연습 공간','VOTRE ESPACE D’ENTRAÎNEMENT','DEIN TRAININGSRAUM'],
 focus:['Find your flow.','專注每一次還原。','专注每一次还原。','自分のリズムで。','나만의 리듬을 찾아요.','Trouvez votre rythme.','Finde deinen Rhythmus.'],
