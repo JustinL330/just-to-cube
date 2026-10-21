@@ -38,7 +38,7 @@ test('DeepSeek supports the dashboard secret alias, provider priority, optional 
   for(const secretName of ['DEEPSEEK_API_KEY','jus-cubing']){
    const config={...env,[secretName]:'deepseek-test-secret'};
    const status=await (await handleAI(new Request('https://cube.test/api/ai'),config)).json();
-   assert.deepEqual(status,{configured:true,provider:'DeepSeek',model:'deepseek-flash'});
+   assert.deepEqual(status,{configured:true,provider:'DeepSeek',model:'deepseek-flash',providers:['DeepSeek','NVIDIA']});
    assert.doesNotMatch(JSON.stringify(status),/secret|key/i);
    globalThis.fetch=async(url,options)=>{
     assert.equal(url,'https://api.deepseek.com/chat/completions');assert.equal(options.headers.Authorization,'Bearer deepseek-test-secret');
@@ -51,5 +51,58 @@ test('DeepSeek supports the dashboard secret alias, provider priority, optional 
   assert.equal((await (await handleAI(new Request('https://cube.test/api/ai'),custom)).json()).model,'configured/model');
   globalThis.fetch=async()=>new Response('private upstream detail',{status:402});
   assert.deepEqual(await (await handleAI(req(valid),custom)).json(),{error:'provider_balance'});
+ }finally{globalThis.fetch=original}
+});
+const chainEnv={DEEPSEEK_API_KEY:'ds-test',NVIDIA_API_KEY:'nv-test',NEXT_ROUTER:'nr-test'};
+const answer=text=>Response.json({choices:[{message:{content:text},finish_reason:'stop'}]});
+test('configured order and aliases are public but keys remain private',async()=>{
+ const d=await(await handleAI(new Request('https://cube.test/api/ai'),chainEnv)).json();
+ assert.deepEqual(d.providers,['DeepSeek','NVIDIA','Next Router']);assert.equal(d.provider,'DeepSeek');
+ assert.ok(!Object.values(chainEnv).some(key=>JSON.stringify(d).includes(key)));
+ const only=await(await handleAI(new Request('https://cube.test/api/ai'),{NEXT_ROUTER_API_KEY:'only-nr'})).json();
+ assert.deepEqual(only,{configured:true,provider:'Next Router',model:'deepseek-v4-flash',providers:['Next Router']});
+});
+test('first success stops the chain and failure preserves exact provider order',async()=>{
+ const original=globalThis.fetch;
+ try{
+  const calls=[];
+  globalThis.fetch=async(url,o)=>{calls.push(url);return answer('First answer')};
+  assert.equal((await(await handleAI(req(valid),chainEnv)).json()).provider,'DeepSeek');assert.equal(calls.length,1);
+  calls.length=0;
+  globalThis.fetch=async(url,o)=>{calls.push({url,auth:o.headers.Authorization,body:JSON.parse(o.body)});return calls.length<3?new Response('private provider detail',{status:calls.length===1?402:429}):answer('Third answer')};
+  const r=await handleAI(req(valid),chainEnv);assert.equal(r.status,200);const d=await r.json();
+  assert.equal(d.provider,'Next Router');assert.equal(d.message,'Third answer');
+  assert.deepEqual(calls.map(c=>c.url),['https://api.deepseek.com/chat/completions','https://integrate.api.nvidia.com/v1/chat/completions','https://next-router.com/v1/chat/completions']);
+  assert.deepEqual(calls.map(c=>c.auth),['Bearer ds-test','Bearer nv-test','Bearer nr-test']);
+  assert.equal(calls[2].body.model,'deepseek-v4-flash');assert.equal(calls[2].body.messages.at(-1).content,'Explain F2L');
+  assert.equal(calls[2].body.thinking,undefined);assert.equal(calls[2].body.chat_template_kwargs,undefined);
+  assert.deepEqual(calls[1].body.chat_template_kwargs,{enable_thinking:false});
+ }finally{globalThis.fetch=original}
+});
+test('all common provider failures advance to NVIDIA without calling Next Router after success',async()=>{
+ const original=globalThis.fetch;
+ try{for(const fail of [()=>new Response('',{status:401}),()=>new Response('',{status:404}),()=>new Response('',{status:503}),()=>new Response('bad json'),()=>Response.json({choices:[{message:{content:' '}}]}),()=>{throw Error('network')},()=>{throw new DOMException('timeout','TimeoutError')}]){
+  let calls=0;globalThis.fetch=async()=>{calls++;return calls===1?fail():answer('NVIDIA answer')};
+  const d=await(await handleAI(req(valid),chainEnv)).json();assert.equal(d.provider,'NVIDIA');assert.equal(calls,2);
+ }}finally{globalThis.fetch=original}
+});
+test('missing providers are skipped and all-failure details are sanitized',async()=>{
+ const original=globalThis.fetch;
+ try{
+  const urls=[];globalThis.fetch=async(url,o)=>{urls.push(url);assert.equal(JSON.parse(o.body).model,'router/custom');return answer('Router only')};
+  assert.equal((await(await handleAI(req(valid),{NEXT_ROUTER:'nr-test',NEXT_ROUTER_MODEL:'router/custom'})).json()).provider,'Next Router');assert.equal(urls.length,1);
+  let calls=0;globalThis.fetch=async()=>{calls++;return new Response('private secret backend detail',{status:401})};
+  const r=await handleAI(req(valid),chainEnv);assert.equal(calls,3);assert.deepEqual(await r.json(),{error:'provider_auth'});
+ }finally{globalThis.fetch=original}
+});
+test('request cancellation and site rate limits do not send to another provider',async()=>{
+ const original=globalThis.fetch;
+ try{
+  const controller=new AbortController();let calls=0;
+  globalThis.fetch=async()=>{calls++;controller.abort();throw new DOMException('cancel','AbortError')};
+  const r=await handleAI(new Request(req(valid),{signal:controller.signal}),chainEnv);assert.equal(r.status,499);assert.equal(calls,1);
+  calls=0;globalThis.fetch=async()=>{calls++;return new Response('',{status:500})};
+  const limited={...chainEnv,AI_RATE_LIMITER:{limit:async()=>({success:false})}};
+  assert.equal((await handleAI(req(valid),limited)).status,429);assert.equal(calls,0);
  }finally{globalThis.fetch=original}
 });

@@ -15,7 +15,7 @@ A responsive, independently built cubing timer and WCA data explorer, inspired b
 - Multiple sessions, best single, mean, ao5/ao12 (trimmed averages), history, graph, manual entry, +2/DNF editing and undoable solve removal.
 - JSON backup export and additive import; CSV session export. Data remains in localStorage on the current device/browser.
 - WCA competitor, competition and WCA-ID personal record search through a fixed-source Worker endpoint. WCA is an external dependency; failures are shown explicitly. Other website searches open external websites, with some using Bing site search.
-- NVIDIA AI coach with seven UI languages, conversation context, suggested questions, cancellation and opt-in session summaries.
+- AI coach with DeepSeek → NVIDIA → Next Router fallback, seven UI languages, conversation context, suggested questions, cancellation and opt-in session summaries.
 - Self-hosted scripts, styles and scramble workers; offline caching through a service worker. No Google fonts, runtime CDN, telemetry or accounts.
 
 ## Development
@@ -39,7 +39,7 @@ For Git integration, connect **justinfromhkg/jus-cubing**, production branch `ma
 - Build output directory: `dist`
 - Root directory: repository root
 
-`wrangler.jsonc` configures Pages. `functions/api/[[path]].js` routes `/api/*` to `worker.js`. `wrangler.worker.jsonc` also supports standalone Workers deployment with `npx wrangler deploy --config wrangler.worker.jsonc`. The timer and WCA search need no secrets or database bindings. The optional AI coach needs the NVIDIA configuration below. Subsequent pushes to `main` trigger builds through Cloudflare's Git integration.
+`wrangler.jsonc` configures Pages. `functions/api/[[path]].js` routes `/api/*` to `worker.js`. `wrangler.worker.jsonc` also supports standalone Workers deployment with `npx wrangler deploy --config wrangler.worker.jsonc`. The timer and WCA search need no secrets or database bindings. The optional AI coach uses the provider configuration below. Subsequent pushes to `main` trigger builds through Cloudflare's Git integration.
 
 ## Mainland China access
 
@@ -64,16 +64,16 @@ The AI coach uses `/api/ai` on the same host. Cloudflare calls the fixed NVIDIA 
 ### Activate
 
 1. Sign in to https://build.nvidia.com and choose a text-chat model with API access available to your account. Generate a key. Check the current model availability, quota and applicable service terms; some older free endpoints have been deprecated. Free developer access is intended for prototyping/testing, not an unlimited free public production service.
-2. In Cloudflare **Workers & Pages → jus-cubing → Settings → Variables and Secrets**, add **Secret** `NVIDIA_API_KEY` with your key. Add **Plaintext** `NVIDIA_MODEL` with the exact model ID from NVIDIA's generated API example. There is deliberately no hardcoded model that might have lost free access.
+2. In Cloudflare **Workers & Pages → jus-cubing → Settings → Variables and Secrets**, add **Secret** `NVIDIA_API_KEY` with your key. Add **Plaintext** `NVIDIA_MODEL` with the exact model ID from NVIDIA's generated API example. The default is `nvidia/nemotron-3.5-lightning-30b-a3b`; `NVIDIA_MODEL` overrides it. Check model availability for your account.
 3. Deploy/redeploy the updated package so the configuration is active. Open **AI coach → Check again**. Readiness confirms configuration is present; send a short question to verify the actual provider connection.
 
 For standalone Workers, use `npx wrangler secret put NVIDIA_API_KEY --config wrangler.worker.jsonc`, configure `NVIDIA_MODEL` in Worker settings/vars, and deploy. For local Pages testing, create an ignored `.dev.vars` with these two variables. Never put a key in source, browser storage, public assets or a GitHub issue.
 
-The chat shows its unavailable state until both values are set. Provider authentication, unavailable-model, quota and timeout errors are reported; there are no fabricated fallback answers. NVIDIA requests have a 45-second timeout, 1,200 output-token cap, limited history, request-size validation, same-origin browser enforcement and no caching. Output is rendered as plain text. AI has no live web search; use Explore for current WCA data.
+The chat uses built-in guides until at least one provider key is configured. Provider authentication, unavailable-model, quota and timeout errors are reported; there are no fabricated fallback answers. Provider attempts share a 42-second timeout budget, 1,200 output-token cap, limited history, request-size validation, same-origin browser enforcement and no caching. Output is rendered as plain text. AI has no live web search; use Explore for current WCA data.
 
-Messages stay in tab memory (not localStorage) until New chat or closing/reloading. Only text the visitor sends is sent to NVIDIA. Session summary sharing is off by default; enabling it reveals the exact event/statistics/recent-times summary attached to the next question. Names, full backups and scrambles are not attached automatically. Stopping a request cancels the browser's wait; an already submitted provider request may still count toward quota.
+Messages stay in tab memory (not localStorage) until New chat or closing/reloading. Chat context is sent to the first successful configured provider in the fallback order described below. Session summary sharing is off by default; enabling it reveals the exact event/statistics/recent-times summary attached to the next question. Names, full backups and scrambles are not attached automatically. Stopping a request cancels the browser's wait; an already submitted provider request may still count toward quota.
 
-Best-effort rate limiting allows six requests per minute per IP per Worker isolate. It is not a global quota guarantee. The handler optionally uses a Cloudflare rate-limiting binding named `AI_RATE_LIMITER` when configured. Before opening a shared developer key to significant public traffic, configure distributed edge limits and monitor NVIDIA usage; there is no automatic paid upgrade or secondary paid provider.
+Best-effort rate limiting allows six requests per minute per IP per Worker isolate. It is not a global quota guarantee. The handler optionally uses a Cloudflare rate-limiting binding named `AI_RATE_LIMITER` when configured. Before opening a shared developer key to significant public traffic, configure distributed edge limits and monitor NVIDIA usage; there is no automatic paid upgrade. Fallback requests use the configured provider accounts and can consume their balances.
 
 Reference: https://docs.api.nvidia.com/nim/docs/api-quickstart and https://docs.api.nvidia.com/nim/docs/product
 
@@ -109,6 +109,16 @@ Session statistics show best, slowest, mean of completed solves, median, populat
 
 ## DeepSeek AI configuration
 
-The Worker reads `DEEPSEEK_API_KEY` or the existing Cloudflare Secret named `jus-cubing` shown in the user's dashboard. DeepSeek is selected when either is present, with default model `deepseek-flash`; optional `DEEPSEEK_MODEL` overrides it. The endpoint is fixed to https://api.deepseek.com/chat/completions. Non-thinking mode keeps chat latency and token use bounded. NVIDIA remains supported if no DeepSeek secret is set. Secrets are used only on the server and are never included in status responses, browser assets, exports, or commits. Runtime configuration takes effect on a new Cloudflare deployment. Messages are sent only to the displayed provider; failed requests offer local guides, without silently sending messages to another provider.
+The Worker reads `DEEPSEEK_API_KEY` or the existing Cloudflare Secret named `jus-cubing` shown in the user's dashboard. DeepSeek is selected when either is present, with default model `deepseek-flash`; optional `DEEPSEEK_MODEL` overrides it. The endpoint is fixed to https://api.deepseek.com/chat/completions. Non-thinking mode keeps chat latency and token use bounded. NVIDIA is the second provider, followed by Next Router. Secrets are used only on the server and are never included in status responses, browser assets, exports, or commits. Runtime configuration takes effect on a new Cloudflare deployment. Requests try configured providers in the order DeepSeek → NVIDIA → Next Router. A successful reply ends the chain. If all providers fail, the UI offers a clearly labelled local guide.
 
-DeepSeek is not advertised as free: usage draws on the site owner's provider account. An insufficient-balance response is shown explicitly. Existing per-IP limits, request bounds, origin checks and output limits apply to both providers.
+DeepSeek is not advertised as free: usage draws on the site owner's provider account. An insufficient-balance response is shown explicitly. Existing per-IP limits, request bounds, origin checks and output limits apply to all providers. A question counts once toward the site rate limit, including its fallback attempts.
+
+## AI fallback order
+
+The fixed order is **DeepSeek → NVIDIA → Next Router**. Missing keys are skipped. Authentication, balance/quota, unavailable-model, server/network errors, empty or malformed replies, and timeouts try the next configured provider. After the first successful reply, no lower-priority provider is called. Each answer labels the actual provider. The privacy notice explains that the same chat context and any opted-in summary may reach subsequent providers after failures.
+
+- DeepSeek: Secret `DEEPSEEK_API_KEY`, with `jus-cubing` supported as a legacy alias. Optional `DEEPSEEK_MODEL` (default `deepseek-flash`).
+- NVIDIA: Secret `NVIDIA_API_KEY`. Optional `NVIDIA_MODEL` (default `nvidia/nemotron-3.5-lightning-30b-a3b`).
+- Next Router: Secret `NEXT_ROUTER_API_KEY` or the existing Secret `NEXT_ROUTER`. Optional `NEXT_ROUTER_MODEL` (default `deepseek-v4-flash`). The fixed endpoint is `https://next-router.com/v1/chat/completions`, as shown in Next Router’s model API example at https://next-router.com/models.
+
+Keys stay in Cloudflare Secrets and are never returned by `/api/ai`. Add secrets to the project serving the domain (currently the `jus-cubing` Pages production project) and deploy after changes. GET `/api/ai` lists the configured providers in order without making paid generation calls or exposing keys. Each attempt gets an equal share of a 42-second upstream budget, so the chain fits the browser’s 50-second wait. Site rate-limit rejections do not trigger upstream fallback. Client cancellation stops any further attempts when the server observes it. Accounts may still charge for an attempt already received.

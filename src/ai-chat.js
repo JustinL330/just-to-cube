@@ -1,13 +1,13 @@
 import {guideReply} from './coach-guides.js';
 import {aiText} from './ai-i18n.js';
 export function initAI({language,summary}){
-  const $=s=>document.querySelector(s),t=k=>aiText(language(),k).replaceAll('{provider}',provider);
+  const $=s=>document.querySelector(s),t=k=>aiText(language(),k).replaceAll('{provider}',k==='aiPrivacy'?(providers.join(' → ')||provider):provider);
   const el=(tag,text,cls)=>{const n=document.createElement(tag);n.textContent=text;if(cls)n.className=cls;return n};
-  let provider='AI',history=[],busy=false,configured=false,checking=true,controller=null,statusKey='aiChecking';
+  let provider='AI',providers=[],history=[],busy=false,configured=false,checking=true,controller=null,statusKey='aiChecking';
   const log=$('#aiMessages'),input=$('#aiInput'),form=$('#aiForm');
   function update(){
     document.querySelectorAll('[data-ai]').forEach(e=>e.textContent=t(!configured&&['ai','aiPrivacy','aiIntro'].includes(e.dataset.ai)?e.dataset.ai+'Guide':e.dataset.ai));
-    const providerLink=$('#aiProviderLink');providerLink.href=provider==='DeepSeek'?'https://platform.deepseek.com':'https://build.nvidia.com';providerLink.textContent=(provider==='DeepSeek'?'DeepSeek':'NVIDIA')+' ↗';
+    const providerLink=$('#aiProviderLink');providerLink.href=provider==='DeepSeek'?'https://platform.deepseek.com':provider==='Next Router'?'https://next-router.com/api-keys':'https://build.nvidia.com';providerLink.textContent=(provider==='AI'?'AI':provider)+' ↗';
     input.placeholder=t('aiInput');input.setAttribute('aria-label',t('aiInput'));
     log.setAttribute('aria-label',t(configured?'ai':'aiGuide'));
     $('#aiSend').disabled=busy||!input.value.trim();
@@ -19,7 +19,7 @@ export function initAI({language,summary}){
   }
   function message(role,content){const n=el('div',content,'ai-message '+role);log.append(n);n.scrollIntoView({block:'nearest'});return n}
   async function check(){checking=true;statusKey='aiChecking';update();
-    try{const r=await fetch('/api/ai',{signal:AbortSignal.timeout(10000),cache:'no-store'});if(!r.ok)throw Error();const d=await r.json();configured=d.configured===true;provider=['DeepSeek','NVIDIA'].includes(d.provider)?d.provider:'AI';statusKey=configured?'aiReady':'aiGuideReady'}
+    try{const r=await fetch('/api/ai',{signal:AbortSignal.timeout(10000),cache:'no-store'});if(!r.ok)throw Error();const d=await r.json();configured=d.configured===true;providers=Array.isArray(d.providers)?d.providers.filter(p=>['DeepSeek','NVIDIA','Next Router'].includes(p)):[];provider=['DeepSeek','NVIDIA','Next Router'].includes(d.provider)?d.provider:'AI';statusKey=configured?'aiReady':'aiGuideReady'}
     catch{configured=false;statusKey='aiGuideReady'}finally{checking=false;update()}
   }
   async function send(e){e.preventDefault();const question=input.value.trim();if(busy||!question)return;
@@ -32,7 +32,7 @@ export function initAI({language,summary}){
     try{const r=await fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages,language:language(),...($('#aiShare').checked?{summary:summary()}:{})}),signal:controller.signal});
       const d=await r.json();if(!r.ok){const k=d.error==='provider_balance'?'aiBalance':d.error==='rate_limited'?'aiLimited':d.error==='timeout'?'aiTimeout':['not_configured','provider_auth','model_unavailable'].includes(d.error)?'aiSetup':'aiUnavailable';if(k==='aiSetup'){configured=false;statusKey=k}throw Error(k)}
       if(typeof d.message!=='string'||!d.message.trim())throw Error('aiUnavailable');
-      message('assistant',d.message);history=[...messages,{role:'assistant',content:d.message.slice(0,4000)}];
+      provider=['DeepSeek','NVIDIA','Next Router'].includes(d.provider)?d.provider:provider;statusKey='aiReady';const answer=message('assistant',d.message);answer.prepend(el('small',provider,'ai-message-provider'));history=[...messages,{role:'assistant',content:d.message.slice(0,4000)}];
       if(d.truncated)$('#aiError').textContent=t('aiTruncated');
     }catch(error){userNode.remove();input.value=question;if(controller.signal.aborted&&controller.signal.reason==='stopped'){}
       else {configured=false;statusKey='aiGuideReady';history=[];message('user',question);message('assistant',t('aiGuideReady')+'\n\n'+guideReply(question,language()));input.value='';$('#aiError').textContent=(error.message==='aiBalance'?t('aiBalance')+' ':'')+t('aiFallback');}

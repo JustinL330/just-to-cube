@@ -81,3 +81,5 @@ html{height:100%;overflow:hidden;overscroll-behavior:none}body{height:100dvh;ove
 #clearSessionName{overflow-wrap:anywhere}
 #sessionsPage>.page-heading>.inline{flex-wrap:wrap}
 @media(max-width:600px){.table-card>.card-top{align-items:flex-start;flex-wrap:wrap}.session-actions{justify-content:flex-start}}
+
+.ai-message-provider{display:block;font-size:10px;opacity:.65;margin-bottom:6px}
