@@ -19,11 +19,11 @@ test('real Worker and SQLite account lifecycle, ownership, revisions and authent
  assert.equal((await call('/api/account/profile','PUT',{name:'No',bio:''},cookieA,'https://evil.test')).status,403);
  assert.equal((await call('/api/account/login','POST',{name:'cuber_a',password:'incorrect-password'})).status,401);
  r=await call('/api/account/profile','PUT',{name:'Test Cuber',bio:'Practising F2L'},cookieA);assert.equal((await r.json()).user.name,'Test Cuber');
- const data={version:1,settings:{language:'en',dark:false,inspection:false},sessions:[{id:'s1',name:'3x3',event:'333',solves:[{id:'solve1',ms:12345,penalty:'OK',date:new Date().toISOString(),scramble:'R U'}]}]};
+ const data={version:1,settings:{language:'en',dark:false,inspection:false,phaseTiming:true,phaseNames:['Cross','Finish'],secondAverageMode:'daily',statisticsTimeZone:'Asia/Hong_Kong'},sessions:[{id:'s1',name:'3x3',event:'333',solves:[{id:'solve1',ms:12345,penalty:'OK',date:new Date().toISOString(),scramble:'R U',phases:[{name:'Cross',ms:2345},{name:'Finish',ms:10000}]}]}]};
  r=await call('/api/account/data','PUT',{data,revision:0},cookieA);assert.equal((await r.json()).revision,1);
  assert.equal((await call('/api/account/data','PUT',{data,revision:0},cookieA)).status,409);
  r=await call('/api/account/data','GET',undefined,cookieB);assert.equal((await r.json()).data,null);
- r=await call('/api/account/data','GET',undefined,cookieA);assert.equal((await r.json()).data.sessions[0].solves[0].date,data.sessions[0].solves[0].date);
+ r=await call('/api/account/data','GET',undefined,cookieA);const saved=(await r.json()).data;assert.deepEqual(saved,data);
  assert.equal((await call('/api/checkins','POST',{text:'Practised today',share:true,session:'s1',summary:'forged'},cookieA)).status,200);
  assert.equal((await call('/api/checkins','POST',{text:'Again'},cookieA)).status,409);
  const feed=await (await call('/api/checkins')).json();assert.equal(feed.posts.length,1);assert.equal(feed.posts[0].summary.best,'12.345');assert.equal(feed.posts[0].display_name,'Test Cuber');

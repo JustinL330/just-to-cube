@@ -32,3 +32,24 @@ test('six requests per minute per IP and optional distributed limiter',async()=>
  assert.equal((await handleAI(req(valid),{...env,AI_RATE_LIMITER:{limit:async()=>({success:false})}})).status,429);
  }finally{globalThis.fetch=original}
 });
+test('DeepSeek supports the dashboard secret alias, provider priority, optional model and safe status',async()=>{
+ const original=globalThis.fetch;
+ try{
+  for(const secretName of ['DEEPSEEK_API_KEY','jus-cubing']){
+   const config={...env,[secretName]:'deepseek-test-secret'};
+   const status=await (await handleAI(new Request('https://cube.test/api/ai'),config)).json();
+   assert.deepEqual(status,{configured:true,provider:'DeepSeek',model:'deepseek-flash'});
+   assert.doesNotMatch(JSON.stringify(status),/secret|key/i);
+   globalThis.fetch=async(url,options)=>{
+    assert.equal(url,'https://api.deepseek.com/chat/completions');assert.equal(options.headers.Authorization,'Bearer deepseek-test-secret');
+    const body=JSON.parse(options.body);assert.equal(body.model,'deepseek-flash');assert.deepEqual(body.thinking,{type:'disabled'});assert.equal(body.stream,false);assert.equal(body.max_tokens,1200);assert.equal(body.messages.at(-1).content,'Explain F2L');
+    return Response.json({choices:[{message:{content:'Connect one corner and edge.'},finish_reason:'stop'}]});
+   };
+   const reply=await (await handleAI(req(valid),config)).json();assert.equal(reply.provider,'DeepSeek');assert.equal(reply.message,'Connect one corner and edge.');assert.doesNotMatch(JSON.stringify(reply),/secret/i);
+  }
+  const custom={DEEPSEEK_API_KEY:'secret',DEEPSEEK_MODEL:'configured/model'};
+  assert.equal((await (await handleAI(new Request('https://cube.test/api/ai'),custom)).json()).model,'configured/model');
+  globalThis.fetch=async()=>new Response('private upstream detail',{status:402});
+  assert.deepEqual(await (await handleAI(req(valid),custom)).json(),{error:'provider_balance'});
+ }finally{globalThis.fetch=original}
+});
