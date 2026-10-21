@@ -18,7 +18,14 @@ test('real Worker and SQLite account lifecycle, ownership, revisions and authent
  assert.equal((await call('/api/checkins','POST',{text:'No login'})).status,401);
  assert.equal((await call('/api/account/profile','PUT',{name:'No',bio:''},cookieA,'https://evil.test')).status,403);
  assert.equal((await call('/api/account/login','POST',{name:'cuber_a',password:'incorrect-password'})).status,401);
- r=await call('/api/account/profile','PUT',{name:'Test Cuber',bio:'Practising F2L'},cookieA);assert.equal((await r.json()).user.name,'Test Cuber');
+ assert.equal((await call('/api/account/profile','PUT',{name:'Guest',bio:''})).status,401);
+ for(const invalid of [{name:'   ',bio:''},{name:'x'.repeat(41),bio:''},{name:'Name',bio:'x'.repeat(201)},{name:'Name'},{name:12,bio:''}]){
+  r=await call('/api/account/profile','PUT',invalid,cookieA);assert.equal(r.status,400);assert.equal((await r.json()).error,'invalid_profile');
+ }
+ r=await call('/api/account/profile','PUT',{name:'  Test Cuber  ',bio:'Practising F2L',id:'cuber_b',username:'hijacked'},cookieA);assert.equal(r.status,200);let updated=(await r.json()).user;assert.equal(updated.name,'Test Cuber');assert.equal(updated.bio,'Practising F2L');assert.equal(updated.username,'cuber_a');
+ r=await call('/api/account/me','GET',undefined,cookieA);assert.equal((await r.json()).user.name,'Test Cuber');
+ r=await call('/api/account/me','GET',undefined,cookieB);assert.equal((await r.json()).user.name,'cuber_b');
+ r=await call('/api/account/login','POST',{name:'cuber_a',password});assert.equal((await r.json()).user.bio,'Practising F2L');
  const data={version:1,settings:{language:'en',dark:false,inspection:false,phaseTiming:true,phaseNames:['Cross','Finish'],secondAverageMode:'daily',statisticsTimeZone:'Asia/Hong_Kong'},sessions:[{id:'s1',name:'3x3',event:'333',solves:[{id:'solve1',ms:12345,penalty:'OK',date:new Date().toISOString(),scramble:'R U',phases:[{name:'Cross',ms:2345},{name:'Finish',ms:10000}]}]}]};
  r=await call('/api/account/data','PUT',{data,revision:0},cookieA);assert.equal((await r.json()).revision,1);
  assert.equal((await call('/api/account/data','PUT',{data,revision:0},cookieA)).status,409);
@@ -27,6 +34,10 @@ test('real Worker and SQLite account lifecycle, ownership, revisions and authent
  assert.equal((await call('/api/checkins','POST',{text:'Practised today',share:true,session:'s1',summary:'forged'},cookieA)).status,200);
  assert.equal((await call('/api/checkins','POST',{text:'Again'},cookieA)).status,409);
  const feed=await (await call('/api/checkins')).json();assert.equal(feed.posts.length,1);assert.equal(feed.posts[0].summary.best,'12.345');assert.equal(feed.posts[0].display_name,'Test Cuber');
+ r=await call('/api/account/profile','PUT',{name:'魔方 Cuber 🧩',bio:'Clock & 3×3\nNew profile'},cookieA);assert.equal(r.status,200);
+ const renamedFeed=await (await call('/api/checkins')).json();assert.equal(renamedFeed.posts[0].display_name,'魔方 Cuber 🧩');assert.equal(renamedFeed.posts[0].bio,'Clock & 3×3\nNew profile');assert.equal(renamedFeed.posts[0].id,feed.posts[0].id);
+ r=await call('/api/account/profile','PUT',{name:'x'.repeat(40),bio:'x'.repeat(200)},cookieA);assert.equal(r.status,200);
+ r=await call('/api/account/profile','PUT',{name:'Test Cuber',bio:''},cookieA);assert.equal(r.status,200);assert.equal((await r.json()).user.bio,'');
  assert.equal((await call('/api/checkins/'+feed.posts[0].id,'DELETE',{},cookieB)).status,404);
  assert.equal((await call('/api/checkins/'+feed.posts[0].id,'DELETE',{},cookieA)).status,200);
  const stored=await db.prepare('SELECT password_hash,salt FROM users WHERE username=?').bind('cuber_a').first();assert.match(stored.password_hash,/^pbkdf2-sha256\$v1\$600000\$[a-f0-9]{64}\$[a-f0-9]{64}$/);assert.equal(stored.salt.length,64);assert.notEqual(stored.password_hash,password);

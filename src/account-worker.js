@@ -54,7 +54,7 @@ export async function handleAccount(request,env){
   const user=await sessionUser(request,db,dev);if(!user)return json({error:'login_required'},401);
   if(path==='/api/account/logout'&&request.method==='POST'){await db.prepare('DELETE FROM auth_sessions WHERE token_hash=?').bind(await digest(tokenFrom(request,dev))).run();return json({ok:true},200,{'Set-Cookie':cookie('',0,dev)})}
   if(path==='/api/account/profile'&&request.method==='PUT'){
-   const b=await bodyJSON(request,4096);if(typeof b.name!=='string'||!b.name.trim()||b.name.trim().length>40||typeof b.bio!=='string'||b.bio.length>200)return json({error:'invalid_profile'},400);
+   const b=await bodyJSON(request,4096);if(!b||typeof b.name!=='string'||!b.name.trim()||b.name.trim().length>40||typeof b.bio!=='string'||b.bio.length>200)return json({error:'invalid_profile'},400);
    await db.prepare('UPDATE users SET display_name=?,bio=? WHERE id=?').bind(b.name.trim(),b.bio,user.id).run();return json({user:profile({...user,display_name:b.name.trim(),bio:b.bio})});
   }
   if(path==='/api/account/password'&&request.method==='PUT'){

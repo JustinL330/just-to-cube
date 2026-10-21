@@ -83,3 +83,6 @@ html{height:100%;overflow:hidden;overscroll-behavior:none}body{height:100dvh;ove
 @media(max-width:600px){.table-card>.card-top{align-items:flex-start;flex-wrap:wrap}.session-actions{justify-content:flex-start}}
 
 .ai-message-provider{display:block;font-size:10px;opacity:.65;margin-bottom:6px}
+
+/* Keep the profile editor discoverable in the compact header. */
+header .account-button{width:auto;display:inline-flex;align-items:center;gap:6px;padding:6px 10px}.account-label{font-size:.75rem;font-weight:600}#profileMessage{min-height:1.4em}#editProfileLink{margin-bottom:12px}
