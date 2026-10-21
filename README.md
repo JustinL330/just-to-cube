@@ -28,7 +28,7 @@ Build copies the app and bundles npm dependencies locally while preserving cubin
 
 ## Cloudflare deployment
 
-Connect **justinfromhkg/jus-cubing**, production branch `main`, to a new **Cloudflare Pages** project named `jus-cubing`:
+For Git integration, connect **justinfromhkg/jus-cubing**, production branch `main`, to a new **Cloudflare Pages** project named `jus-cubing`:
 
 - Build command: `npm run build`
 - Build output directory: `dist`
@@ -49,3 +49,5 @@ This is a practice tool, not an official WCA scrambling program. WCA data is pub
 ## Credits and licensing
 
 Original app code: MIT (see LICENSE). cubing.js 0.66.1: MPL-2.0 OR GPL-3.0-or-later; used here under MPL-2.0, with notices distributed in `dist/vendor`. Its unchanged source is available from the pinned npm package and https://github.com/cubing/cubing.js. Other dependencies retain their licenses. No csTimer source is copied. csTimer is an inspiration/reference only. Not affiliated with WCA, csTimer, or Rubik's brand owners.
+
+For direct upload, run `npm run build`, zip the contents of `dist` (with index.html at the archive root), and upload it to a Cloudflare Pages Direct Upload project. `_worker.js` and `_routes.json` contain the search backend and its API routes. `deployment/jus-cubing-cloudflare.zip` is the prebuilt upload package. Direct Upload does not automatically deploy future GitHub pushes.
