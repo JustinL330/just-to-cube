@@ -13,7 +13,8 @@ test('real Worker and SQLite account lifecycle, ownership, revisions and authent
  const mf=new Miniflare({modules:true,compatibilityDate:'2026-10-21',scriptPath:'.wrangler/test/worker.mjs',d1Databases:{DB:'test-account-db'}});
  try{const db=await mf.getD1Database('DB');await db.exec(await readFile('migrations/0001_accounts.sql','utf8'));
  let ip=0;const call=async(path,method='GET',body,cookie='',origin='https://test.cubing')=>mf.dispatchFetch('https://test.cubing'+path,{method,headers:{Origin:origin,'Content-Type':'application/json','CF-Connecting-IP':'test-'+(++ip),Cookie:cookie},body:body?JSON.stringify(body):undefined});
- const password='cube-practice-test-password';let r=await call('/api/account/register','POST',{name:'cuber_a',password,timezone:'Asia/Hong_Kong'});assert.equal(r.status,200);const cookieA=r.headers.get('Set-Cookie').split(';')[0];assert.match(r.headers.get('Set-Cookie'),/HttpOnly; Secure; SameSite=Lax/);assert.doesNotMatch(JSON.stringify(await r.json()),/password_hash|salt/);
+ for(const password of ['Abc1234','x'.repeat(129)]){const invalid=await call('/api/account/register','POST',{name:'too_short_or_long',password});assert.equal(invalid.status,400);assert.equal((await invalid.json()).error,'credentials_format')}
+ const password='12345678';let r=await call('/api/account/register','POST',{name:'cuber_a',password,timezone:'Asia/Hong_Kong'});assert.equal(r.status,200);const cookieA=r.headers.get('Set-Cookie').split(';')[0];assert.match(r.headers.get('Set-Cookie'),/HttpOnly; Secure; SameSite=Lax/);assert.doesNotMatch(JSON.stringify(await r.json()),/password_hash|salt/);
  r=await call('/api/account/register','POST',{name:'cuber_b',password});assert.equal(r.status,200);const cookieB=r.headers.get('Set-Cookie').split(';')[0];
  assert.equal((await call('/api/checkins','POST',{text:'No login'})).status,401);
  assert.equal((await call('/api/account/profile','PUT',{name:'No',bio:''},cookieA,'https://evil.test')).status,403);
@@ -46,7 +47,10 @@ test('real Worker and SQLite account lifecycle, ownership, revisions and authent
  const legacySalt='ab'.repeat(32),legacyHash=await derivePasswordHash(password,legacySalt);await db.prepare('UPDATE users SET password_hash=?,salt=? WHERE username=?').bind(legacyHash,legacySalt,'cuber_a').run();
  assert.equal((await call('/api/account/login','POST',{name:'cuber_a',password:'incorrect-password'})).status,401);assert.equal((await db.prepare('SELECT password_hash FROM users WHERE username=?').bind('cuber_a').first()).password_hash,legacyHash);
  assert.equal((await call('/api/account/login','POST',{name:'cuber_a',password})).status,200);assert.match((await db.prepare('SELECT password_hash FROM users WHERE username=?').bind('cuber_a').first()).password_hash,/^pbkdf2-sha256\$v1\$/);
- r=await call('/api/account/password','PUT',{current:password,password:'a-different-long-password'},cookieA);assert.equal(r.status,200);const newCookie=r.headers.get('Set-Cookie').split(';')[0];
+ for(const nextPassword of ['Abc1234','x'.repeat(129)]){const invalid=await call('/api/account/password','PUT',{current:password,password:nextPassword},cookieA);assert.equal(invalid.status,400);assert.equal((await invalid.json()).error,'credentials_format')}
+ r=await call('/api/account/password','PUT',{current:password,password:'Abc1234567'},cookieA);assert.equal(r.status,200);const newCookie=r.headers.get('Set-Cookie').split(';')[0];
+ assert.equal((await call('/api/account/login','POST',{name:'cuber_a',password:'Abc1234567'})).status,200);
+ assert.equal((await call('/api/account/login','POST',{name:'cuber_a',password})).status,401);
  assert.equal((await (await call('/api/account/me','GET',undefined,cookieA)).json()).user,null);
  assert.equal((await call('/api/account/logout','POST',{},newCookie)).status,200);
  assert.equal((await (await call('/api/account/me','GET',undefined,newCookie)).json()).user,null);
