@@ -2,6 +2,12 @@
 
 A responsive, independently built cubing timer and WCA data explorer, inspired by csTimer and DCTimer.
 
+## Live website
+
+**[Open just-to-cube](https://jus-to-cube.pages.dev)** — the deployed app is public and does not require GitHub repository access or a GitHub account.
+
+Source repository: [JustinL330/just-to-cube](https://github.com/JustinL330/just-to-cube)
+
 ## Features
 
 - Flag-labelled language picker and a light/dark toggle beside it, with a polished hand-held cube app icon.
@@ -33,7 +39,7 @@ Build copies the app and bundles npm dependencies locally while preserving cubin
 
 ## Cloudflare deployment
 
-For Git integration, connect **justinfromhkg/jus-cubing**, production branch `main`, to a new **Cloudflare Pages** project named `jus-cubing`:
+For Git integration, connect **JustinL330/just-to-cube**, production branch `main`, to the **Cloudflare Pages** project named `jus-to-cube`:
 
 - Build command: `npm run build`
 - Build output directory: `dist`
@@ -121,7 +127,7 @@ The fixed order is **DeepSeek → NVIDIA → Next Router**. Missing keys are ski
 - NVIDIA: Secret `NVIDIA_API_KEY`. Optional `NVIDIA_MODEL` (default `nvidia/nemotron-3.5-lightning-30b-a3b`).
 - Next Router: Secret `NEXT_ROUTER_API_KEY` or the existing Secret `NEXT_ROUTER`. Optional `NEXT_ROUTER_MODEL` (default `deepseek-v4-flash`). The fixed endpoint is `https://next-router.com/v1/chat/completions`, as shown in Next Router’s model API example at https://next-router.com/models.
 
-Keys stay in Cloudflare Secrets and are never returned by `/api/ai`. Add secrets to the project serving the domain (currently the `jus-cubing` Pages production project) and deploy after changes. GET `/api/ai` lists the configured providers in order without making paid generation calls or exposing keys. Each attempt gets an equal share of a 42-second upstream budget, so the chain fits the browser’s 50-second wait. Site rate-limit rejections do not trigger upstream fallback. Client cancellation stops any further attempts when the server observes it. Accounts may still charge for an attempt already received.
+Keys stay in Cloudflare Secrets and are never returned by `/api/ai`. Add secrets to the project serving the domain (currently the `jus-to-cube` Pages production project) and deploy after changes. GET `/api/ai` lists the configured providers in order without making paid generation calls or exposing keys. Each attempt gets an equal share of a 42-second upstream budget, so the chain fits the browser’s 50-second wait. Site rate-limit rejections do not trigger upstream fallback. Client cancellation stops any further attempts when the server observes it. Accounts may still charge for an attempt already received.
 
 ### Public and private forum zones
 
