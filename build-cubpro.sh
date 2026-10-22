@@ -31,8 +31,8 @@ cat > dist/_redirects <<'REDIRECTS'
 /competition/:id/ /__fallbacks/competition.html 200
 /player/:id /__fallbacks/player.html 200
 /player/:id/ /__fallbacks/player.html 200
-/wca/player/:id /wca/__fallbacks/player.html 200
-/wca/player/:id/ /wca/__fallbacks/player.html 200
+/wca/player/:id /__fallbacks/wca-player.html 200
+/wca/player/:id/ /__fallbacks/wca-player.html 200
 /admin/organizers/:org/comp/:comp/result /__fallbacks/organizer-result.html 200
 /admin/organizers/:org/comp/:comp/result/ /__fallbacks/organizer-result.html 200
 REDIRECTS
