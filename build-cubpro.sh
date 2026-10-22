@@ -27,14 +27,14 @@ cp dist/player/__dynamic__/index.html dist/__fallbacks/player.html
 cp dist/wca/player/__dynamic__/index.html dist/__fallbacks/wca-player.html
 cp dist/admin/organizers/__dynamic__/comp/__dynamic__/result/index.html dist/__fallbacks/organizer-result.html
 cat > dist/_redirects <<'REDIRECTS'
-/competition/:id /__fallbacks/competition.html 200
-/competition/:id/ /__fallbacks/competition.html 200
-/player/:id /__fallbacks/player.html 200
-/player/:id/ /__fallbacks/player.html 200
-/wca/player/:id /__fallbacks/wca-player.html 200
-/wca/player/:id/ /__fallbacks/wca-player.html 200
-/admin/organizers/:org/comp/:comp/result /__fallbacks/organizer-result.html 200
-/admin/organizers/:org/comp/:comp/result/ /__fallbacks/organizer-result.html 200
+/competition/:id /__fallbacks/competition 200
+/competition/:id/ /__fallbacks/competition 200
+/player/:id /__fallbacks/player 200
+/player/:id/ /__fallbacks/player 200
+/wca/player/:id /__fallbacks/wca-player 200
+/wca/player/:id/ /__fallbacks/wca-player 200
+/admin/organizers/:org/comp/:comp/result /__fallbacks/organizer-result 200
+/admin/organizers/:org/comp/:comp/result/ /__fallbacks/organizer-result 200
 REDIRECTS
 printf '{"repository":"JustinL330/cubing.pro","branch":"main","commit":"%s","environment":"unofficial test deployment"}\n' "$source_sha" > dist/deployment-info.json
 cp -a dist "$build_root/dist"
