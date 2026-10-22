@@ -60,3 +60,5 @@ cat > dist/_redirects <<'REDIRECTS'
 REDIRECTS
 printf '{"repository":"JustinL330/cubing.pro","branch":"main","commit":"%s","environment":"unofficial test deployment"}\n' "$source_sha" > dist/deployment-info.json
 cp -a dist "$build_root/dist"
+
+# Preview refresh: Korean, language icon and fixed timer viewport (e59add8).
