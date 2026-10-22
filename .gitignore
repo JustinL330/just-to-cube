@@ -1,9 +1,0 @@
-node_modules/
-dist/
-.wrangler/
-.openai/
-
-.dev.vars
-.dev.vars.*
-.env
-.env.*

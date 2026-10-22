@@ -1,18 +1,7 @@
 {
-  "name": "just-to-cube",
-  "version": "1.0.0",
+  "name": "cubpro-preview-host",
   "private": true,
-  "type": "module",
   "scripts": {
-    "build": "node scripts/build.mjs",
-    "test": "node --test test/*.test.mjs",
-    "dev": "node scripts/dev.mjs"
-  },
-  "dependencies": {
-    "cubing": "0.66.1"
-  },
-  "devDependencies": {
-    "esbuild": "0.25.12",
-    "wrangler": "4.45.0"
+    "build": "bash build-cubpro.sh"
   }
 }
