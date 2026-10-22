@@ -62,3 +62,5 @@ printf '{"repository":"JustinL330/cubing.pro","branch":"main","commit":"%s","env
 cp -a dist "$build_root/dist"
 
 # Preview refresh: Korean, language icon and fixed timer viewport (e59add8).
+
+# Preview refresh: bundled scramble worker and mobile header (4685d7f).
