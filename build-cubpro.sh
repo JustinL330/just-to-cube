@@ -10,7 +10,7 @@ cd "$source_dir/app"
 source_sha="$(git rev-parse HEAD)"
 echo "Building JustinL330/cubing.pro main at $source_sha"
 # Use the official registry and the original HowToCook repository in Cloudflare.
-npm ci --registry=https://registry.npmjs.org
+npm install --registry=https://registry.npmjs.org --no-audit --no-fund
 git clone --depth 1 https://github.com/Anduin2017/HowToCook.git "$source_dir/howtocook"
 export HOWTOCOOK_SOURCE_DIR="$source_dir/howtocook"
 export NEXT_TELEMETRY_DISABLED=1
