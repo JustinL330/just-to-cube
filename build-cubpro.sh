@@ -21,15 +21,20 @@ NEXT_OUTPUT_EXPORT=1 ./node_modules/.bin/next build
 node scripts/post-static-export.mjs
 node scripts/restore-static-export.mjs
 test -f dist/index.html
+mkdir -p dist/__fallbacks
+cp dist/competition/__dynamic__/index.html dist/__fallbacks/competition.html
+cp dist/player/__dynamic__/index.html dist/__fallbacks/player.html
+cp dist/wca/player/__dynamic__/index.html dist/__fallbacks/wca-player.html
+cp dist/admin/organizers/__dynamic__/comp/__dynamic__/result/index.html dist/__fallbacks/organizer-result.html
 cat > dist/_redirects <<'REDIRECTS'
-/competition/:id /competition/__dynamic__/index.html 200
-/competition/:id/ /competition/__dynamic__/index.html 200
-/player/:id /player/__dynamic__/index.html 200
-/player/:id/ /player/__dynamic__/index.html 200
-/wca/player/:id /wca/player/__dynamic__/index.html 200
-/wca/player/:id/ /wca/player/__dynamic__/index.html 200
-/admin/organizers/:org/comp/:comp/result /admin/organizers/__dynamic__/comp/__dynamic__/result/index.html 200
-/admin/organizers/:org/comp/:comp/result/ /admin/organizers/__dynamic__/comp/__dynamic__/result/index.html 200
+/competition/:id /__fallbacks/competition.html 200
+/competition/:id/ /__fallbacks/competition.html 200
+/player/:id /__fallbacks/player.html 200
+/player/:id/ /__fallbacks/player.html 200
+/wca/player/:id /wca/__fallbacks/player.html 200
+/wca/player/:id/ /wca/__fallbacks/player.html 200
+/admin/organizers/:org/comp/:comp/result /__fallbacks/organizer-result.html 200
+/admin/organizers/:org/comp/:comp/result/ /__fallbacks/organizer-result.html 200
 REDIRECTS
 printf '{"repository":"JustinL330/cubing.pro","branch":"main","commit":"%s","environment":"unofficial test deployment"}\n' "$source_sha" > dist/deployment-info.json
 cp -a dist "$build_root/dist"
