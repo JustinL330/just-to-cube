@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {puzzles} from 'cubing/puzzles';
-import {PIECES,SHAPES,cases,solvedState,assertState,applyAlg,parseAlg,formatAlg,invertAlg,rotate,slice,isSliceable,identifyLayers,layerCode,layerPieces,shapeStates,analyze,generate} from '../src/sq1-engine.js';
+import {PIECES,SHAPES,cases,solvedState,assertState,applyAlg,parseAlg,formatAlg,invertAlg,rotate,slice,isSliceable,identifyLayers,layerCode,layerPieces,shapeStates,analyze,generate,departureMarkers} from '../src/sq1-engine.js';
 
 const samples=[
  '(0, -1) / (-2, 1) / (0, -3) / (-1, 2) / (3, 0) / (3, 0) / (0, 4) / (-3, 0) / (4, 0) / (5, 0) / (2, 0) / (0, -1) / (-2, 0) / (6, 0) / (0, 1)',
@@ -75,12 +75,38 @@ test('targeted scrambles reach every selected case with physical state matching 
  for(const c of cases()){
    const r=generate(samples[i++%samples.length],c.id);
    assert.equal(pairId(r.state),c.id);assert.deepEqual(applyAlg(origin,r.scramble),r.state);
+   assert.equal(r.scramble,[r.colourScramble,r.shapeScramble].filter(Boolean).join(' '));
+   let checkpoint=origin;
+   for(const move of parseAlg(r.colourScramble)){
+     checkpoint=applyAlg(checkpoint,formatAlg([move]));
+     assert.deepEqual(identifyLayers(checkpoint),['square','square'],'colour moves preserve cube shape throughout');
+   }
+   assert.deepEqual(applyAlg(checkpoint,r.shapeScramble),r.state,'shape suffix starts exactly at the colour checkpoint');
+   assert.equal(parseAlg(r.shapeScramble).filter(m=>m.kind==='slice').length,c.minSlices,'shape suffix is a shortest creation of the case');
+   assert.deepEqual(r.shapeMarkers,departureMarkers(checkpoint,r.shapeScramble));
    const reference=kp.defaultPattern().applyAlg(r.scramble).patternData.WEDGES.pieces.map(id=>pieceMap[id]);
    assert.deepEqual([...r.state.top,...r.state.bottom],reference);
    const result=analyze(r.state);assert.equal(result.minSlices,c.minSlices);
    for(const route of result.routes)assert.deepEqual(identifyLayers(applyAlg(r.state,route.alg)),['square','square']);
  }
  assert.throws(()=>generate('', 'invalid:case'),/invalid_case/);
+});
+
+test('colour-first boundary handles empty phases and excludes later returns to cube shape',()=>{
+ const square=generate(samples[0],'square:square');
+ assert.ok(square.colourScramble);assert.equal(square.shapeScramble,'');assert.deepEqual(square.shapeMarkers,[]);
+ assert.deepEqual(identifyLayers(square.state),['square','square']);
+ const shapeOnly=generate('/ / (1,0) /','kite:kite');
+ assert.equal(shapeOnly.colourScramble,'');
+ assert.equal(parseAlg(shapeOnly.shapeScramble).filter(m=>m.kind==='slice').length,1);
+ const empty=generate('','square:square');assert.equal(empty.scramble,'');assert.equal(empty.colourScramble,'');assert.equal(empty.shapeScramble,'');
+ assert.throws(()=>generate('/ / (0,1) /','kite:kite'),/illegal_slice/);
+});
+
+test('stars mark misaligned cube-shape departures, not ordinary or cube-preserving slices',()=>{
+ assert.deepEqual(departureMarkers(solvedState(),'/'),[]);
+ assert.deepEqual(departureMarkers(solvedState(),'(1,-1) /'),[1]);
+ assert.deepEqual(departureMarkers(solvedState(),'(1,0) /'),[]);
 });
 
 test('trainer labels cover every supported language and preserve placeholder substitution',async()=>{

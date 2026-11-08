@@ -1,4 +1,4 @@
-import {SHAPES,PIECES,layerPieces,layerCode,identifyLayers} from './sq1-engine.js';
+import {SHAPES,PIECES,layerPieces,layerCode,identifyLayers,parseAlg,formatAlg} from './sq1-engine.js';
 import {sq1Text} from './sq1-i18n.js';
 
 const NS='http://www.w3.org/2000/svg';
@@ -46,7 +46,7 @@ export function initSQ1({language,settings,save,toast=()=>{}}){
  <div class="page-heading sq1-heading"><div><p class="eyebrow" data-sq="eyebrow"></p><h1 data-sq="title"></h1><p class="muted sq1-intro" data-sq="intro"></p></div><a class="sq1-cases-jump secondary" href="#sq1CaseSection" data-sq="showCases"></a></div>
  <div class="sq1-layout"><section class="sq1-practice card" aria-labelledby="sq1PracticeTitle"><div class="sq1-section-top"><h2 id="sq1PracticeTitle" data-sq="train"></h2><span class="sq1-badge" id="sq1CurrentDepth"></span></div>
  <div id="sq1Status" class="sq1-status" role="status" aria-live="polite"></div><div id="sq1CurrentDiagram" class="sq1-current-diagram"></div>
- <div id="sq1ScrambleArea"><p class="sq1-caption" data-sq="scramble"></p><p id="sq1ScrambleText" class="sq1-scramble"></p></div>
+ <div id="sq1ScrambleArea"><p class="sq1-caption" data-sq="scramble"></p><p class="sq1-scramble-key"><span class="sq1-colour-phase" data-sq="colourPhase"></span><span aria-hidden="true"> → </span><span class="sq1-shape-phase" data-sq="shapePhase"></span></p><p id="sq1ScrambleText" class="sq1-scramble"></p><p class="sq1-star-help muted" data-sq="starHint"></p></div>
  <div class="sq1-actions"><button type="button" class="primary" id="sq1New" data-sq="newScramble"></button><button type="button" class="secondary" id="sq1Repeat" data-sq="repeat"></button><button type="button" class="secondary" id="sq1Copy" data-sq="copy"></button></div>
  <button type="button" class="sq1-reveal" id="sq1Reveal" data-sq="reveal"></button><p class="sq1-goal muted" data-sq="goalHint"></p>
  </section><aside class="sq1-labels card"><p class="eyebrow">01 / 02</p><h2 data-sq="display"></h2><label class="sq1-toggle"><span data-sq="names"></span><input type="checkbox" id="sq1Names"></label><label class="sq1-toggle"><span data-sq="codes"></span><input type="checkbox" id="sq1Codes"></label><p class="muted sq1-legend" data-sq="legend"></p><div class="sq1-notation"><code>(a,b) /</code><p data-sq="turnHint"></p></div></aside></div>
@@ -107,7 +107,19 @@ export function initSQ1({language,settings,save,toast=()=>{}}){
   if(failure){const retry=node('button',t('retry'),'text-button');retry.type='button';retry.onclick=()=>!loaded?initialize():activeOperation==='solve'?revealSolutions():generate(false,requestedCaseId);$('#sq1Status').append(retry);}
  }
  function renderPractice(){
-  $('#sq1CurrentDiagram').replaceChildren();$('#sq1CurrentDepth').textContent='';$('#sq1ScrambleText').textContent=current?.scramble||'';$('#sq1ScrambleArea').hidden=!current;
+  $('#sq1CurrentDiagram').replaceChildren();$('#sq1CurrentDepth').textContent='';$('#sq1ScrambleText').replaceChildren();$('#sq1ScrambleArea').hidden=!current;
+  if(current){
+   const colour=node('span',current.colourScramble||t('noColourMoves'),'sq1-colour-phase');colour.setAttribute('aria-label',t('colourPhase')+': '+(current.colourScramble||t('noColourMoves')));
+   const shape=node('span',undefined,'sq1-shape-phase');shape.setAttribute('aria-label',t('shapePhase'));
+   const markers=new Set(current.shapeMarkers||[]);
+   for(const [index,move]of parseAlg(current.shapeScramble||'').entries()){
+    if(index)shape.append(document.createTextNode(' '));
+    if(markers.has(index)){const star=node('span','*','sq1-scramble-star');star.title=t('starHint');star.setAttribute('role','img');star.setAttribute('aria-label',t('starHint'));shape.append(star,document.createTextNode(' '));}
+    shape.append(node('span',formatAlg([move]),'sq1-scramble-move'));
+   }
+   if(!current.shapeScramble)shape.textContent=t('noShapeMoves');
+   $('#sq1ScrambleText').append(colour,document.createTextNode('  '),shape);
+  }
   if(current){$('#sq1CurrentDiagram').append(pairDiagram(current.state));const c=catalog.find(c=>c.id===current.caseId);if(c)$('#sq1CurrentDepth').textContent=t('slices',{n:c.minSlices});}
   else {const ghost=node('div',undefined,'sq1-ghost');ghost.append(node('span','◇'),node('p',t(busy?'loading':'empty')));$('#sq1CurrentDiagram').append(ghost);}
   renderControls();renderSolution();

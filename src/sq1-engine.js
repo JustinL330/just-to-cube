@@ -170,9 +170,32 @@ export function analyze(state){
   for(const route of routes){const end=route.frames.at(-1).state;if(stateKey(end)!==goal||parseAlg(route.alg).filter(m=>m.kind==='slice').length!==minSlices)throw Error('solution_verification_failed');}
   return {minSlices,totalSolutions:routes.length,routes};
 }
+export function departureMarkers(state,alg){
+  const standard=solvedState(),{goal}=graph(),markers=[];
+  let current=cloneState(assertState(state));
+  for(const [index,move]of parseAlg(alg).entries()){
+    const next=execute(current,move);
+    // Match Squanmate's light-blue star: a slash leaves cube shape with
+    // the layer C/E orientation different from the standard solved position.
+    const aligned=['top','bottom'].every(side=>current[side].every((id,i)=>PIECES[id].type===PIECES[standard[side][i]].type));
+    if(move.kind==='slice'&&stateKey(current)===goal&&stateKey(next)!==goal&&!aligned)markers.push(index);
+    current=next;
+  }
+  return markers;
+}
 export function generate(baseAlg,caseId){
   const target=cases().find(c=>c.id===caseId);if(!target)throw Error('invalid_case');
-  const initial=applyAlg(solvedState(),baseAlg),{nodes}=graph();
+  // cubing.js emits its cube-shape colour phase before its random shape phase.
+  // Keep only the continuous cube-preserving prefix, then construct the chosen
+  // shape directly. Never label an excursion out of cube shape as colour-only.
+  const baseMoves=parseAlg(baseAlg);applyAlg(solvedState(),baseAlg);
+  const {nodes,goal}=graph(),colourMoves=[];
+  let initial=solvedState();
+  for(const move of baseMoves){
+    const next=execute(initial,move);
+    if(stateKey(next)!==goal)break;
+    colourMoves.push(move);initial=next;
+  }
   // Both layer orders belong to the same training case. Pick either, then
   // connect without changing or approximating the physical piece state.
   const order=crypto.getRandomValues(new Uint8Array(1))[0]&1;
@@ -183,10 +206,10 @@ export function generate(baseAlg,caseId){
     const next=nodes.get(key).next.filter(n=>dist.get(n)===dist.get(key)-1);
     key=next[crypto.getRandomValues(new Uint32Array(1))[0]%next.length];path.push(key);
   }
-  const tail=materialize(initial,path).alg;
-  const scramble=[baseAlg.trim(),tail].filter(Boolean).join(' '),state=applyAlg(solvedState(),scramble);
+  const colourScramble=formatAlg(colourMoves),shapeScramble=materialize(initial,path).alg;
+  const scramble=[colourScramble,shapeScramble].filter(Boolean).join(' '),state=applyAlg(solvedState(),scramble);
   if(identifyLayers(state).slice().sort().join(':')!==caseId)throw Error('scramble_verification_failed');
-  return {scramble,state,caseId};
+  return {scramble,colourScramble,shapeScramble,shapeMarkers:departureMarkers(initial,shapeScramble),state,caseId};
 }
 // Exposed for exhaustive independent validation of the 170 ordered shapes.
 export function shapeStates(){return [...graph().nodes.values()].map(n=>({key:n.key,state:cloneState(n.state),minSlices:graph().distances.get(n.key),next:n.next.slice()}));}

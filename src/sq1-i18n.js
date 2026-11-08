@@ -26,4 +26,14 @@ const de={
 export const sq1Dictionaries={en,zh_cn,zh_hk,ja,ko,fr,de};
 const extra={en:['A Square‑1 shape trainer with every shortest route.','Include current SQ‑1 case','Case details'],zh_cn:['查看 SQ‑1 全部最短复形路线。','附上当前 SQ‑1 case','Case 详情'],zh_hk:['查看 SQ‑1 全部最短復形路線。','附上目前 SQ‑1 case','Case 詳情'],ja:['SQ‑1 の最短シェイプルートをすべて確認。','現在の SQ‑1 ケースを含める','ケースの詳細'],ko:['SQ‑1의 모든 최단 모양 경로를 확인하세요.','현재 SQ‑1 케이스 포함','케이스 정보'],fr:['Tous les chemins les plus courts vers la forme de cube.','Inclure le cas SQ‑1 actuel','Détails du cas'],de:['Alle kürzesten Wege zur SQ‑1-Würfelform.','Aktuellen SQ‑1-Fall einbeziehen','Falldetails']};
 for(const[locale,values]of Object.entries(extra))Object.assign(sq1Dictionaries[locale],Object.fromEntries(['about','contextShare','contextPreview'].map((k,i)=>[k,values[i]])));
+const scrambleLabels={
+ en:{colourPhase:'Colour scramble',shapePhase:'Shape scramble',noColourMoves:'(no colour moves)',noShapeMoves:'(already in cube shape)',starHint:'* marks a non-standard cube-shape alignment before the departing slice. It counts as no move and is omitted when copying.'},
+ zh_cn:{colourPhase:'颜色打乱',shapePhase:'形状打乱',noColourMoves:'（颜色无需操作）',noShapeMoves:'（已经是正方形）',starHint:'* 提示离开正方形前的非标准复形摆位；不计步，复制公式时省略。'},
+ zh_hk:{colourPhase:'顏色打亂',shapePhase:'形狀打亂',noColourMoves:'（顏色無需操作）',noShapeMoves:'（已經是正方形）',starHint:'* 提示離開正方形前的非標準復形擺位；不計步，複製公式時省略。'},
+ ja:{colourPhase:'配色スクランブル',shapePhase:'シェイプスクランブル',noColourMoves:'（配色の操作なし）',noShapeMoves:'（すでにキューブシェイプ）',starHint:'* は形を崩すスライス前の非標準の位置合わせを示します。手数には数えず、コピー時は省きます。'},
+ ko:{colourPhase:'색상 스크램블',shapePhase:'모양 스크램블',noColourMoves:'(색상 조작 없음)',noShapeMoves:'(이미 정육면체 모양)',starHint:'* 는 모양이 바뀌기 직전 비표준 큐브 모양 정렬을 표시합니다. 회전으로 세지 않으며 복사할 때 제외됩니다.'},
+ fr:{colourPhase:'Mélange des couleurs',shapePhase:'Mélange de la forme',noColourMoves:'(aucun mouvement de couleur)',noShapeMoves:'(déjà en forme de cube)',starHint:'* indique un alignement non standard avant la tranche quittant la forme de cube. Ce repère ne compte pas comme un mouvement et est omis de la copie.'},
+ de:{colourPhase:'Farben mischen',shapePhase:'Form mischen',noColourMoves:'(keine Farbzüge)',noShapeMoves:'(bereits in Würfelform)',starHint:'* markiert eine nicht standardmäßige Ausrichtung vor dem Schnitt aus der Würfelform. Die Markierung zählt nicht als Zug und wird beim Kopieren ausgelassen.'}
+};
+for(const[locale,labels]of Object.entries(scrambleLabels))Object.assign(sq1Dictionaries[locale],labels);
 export function sq1Text(language,key,params={}){let value=(sq1Dictionaries[language]||en)[key]||en[key]||key;for(const[k,v]of Object.entries(params))value=value.replaceAll('{'+k+'}',String(v));return value;}

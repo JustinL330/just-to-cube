@@ -8,7 +8,8 @@ A multilingual Square-1 shape trainer and cubing community. English, Simplified 
 
 - Select from 29 single-layer shapes and 90 unordered top/bottom combinations. Layer swaps are grouped in the selector; the solver tracks all 170 ordered combinations. Mirrored shapes remain distinct.
 - Multi-select cases, search names or C/E codes, filter by minimum slice count, select all/none, generate another scramble, repeat a case, and copy the scramble.
-- Selected cases are sampled uniformly. Existing cubing.js random-state SQ1 scrambles are followed by a legal shape connection to the selected case. These are targeted training scrambles, rather than a claim of uniform full-state competition scrambles.
+- Selected cases are sampled uniformly. Keep the continuous cube-preserving colour prefix of a cubing.js SQ1 scramble, then generate a shortest shape suffix for the selected case. The colour phase appears first in black, followed by the shape phase in blue (high-contrast neutral/blue in dark mode). These are targeted training scrambles, rather than a claim of uniform full-state competition scrambles.
+- Like Squanmate, a light-blue `*` immediately before a departing slash marks a non-standard cube-shape alignment. Aligned departures have no star. The marker is explanatory, is not counted as a move, and is omitted by Copy scramble so the copied algorithm remains executable. Square/square cases explicitly show that no shape moves are needed.
 - Reveal all shortest shape routes. Each route has a runnable formula, written turn instructions, and initial / after-rotation / after-slice diagrams. Select another route or click a step to synchronize the formula and picture.
 - Independent persistent switches control bilingual Chinese/English shape names and canonical C/E ring codes. C = corner (60 degrees); E = edge (30 degrees). Square = `CECECECE`. The diagram marks where to begin reading clockwise.
 
