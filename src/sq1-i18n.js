@@ -36,4 +36,14 @@ const scrambleLabels={
  de:{colourPhase:'Farben mischen',shapePhase:'Form mischen',noColourMoves:'(keine Farbzüge)',noShapeMoves:'(bereits in Würfelform)',starHint:'* markiert eine nicht standardmäßige Ausrichtung vor dem Schnitt aus der Würfelform. Die Markierung zählt nicht als Zug und wird beim Kopieren ausgelassen.'}
 };
 for(const[locale,labels]of Object.entries(scrambleLabels))Object.assign(sq1Dictionaries[locale],labels);
+const currentCaseLabels={
+ en:{deselectCurrent:'Deselect this case',currentDeselected:'Case deselected',deselectCurrentHint:'Uncheck this case below and exclude it from future random scrambles.'},
+ zh_cn:{deselectCurrent:'取消当前 case',currentDeselected:'当前 case 已取消',deselectCurrentHint:'同步取消下方对应 case 的勾选，后续新打乱不再随机抽到它。'},
+ zh_hk:{deselectCurrent:'取消目前 case',currentDeselected:'目前 case 已取消',deselectCurrentHint:'同步取消下方對應 case 的勾選，之後新打亂不再隨機抽到它。'},
+ ja:{deselectCurrent:'このケースを選択解除',currentDeselected:'ケースの選択解除済み',deselectCurrentHint:'下の該当ケースのチェックを外し、次のランダム出題から除外します。'},
+ ko:{deselectCurrent:'현재 케이스 선택 해제',currentDeselected:'케이스 선택 해제됨',deselectCurrentHint:'아래 해당 케이스의 체크를 해제하고 이후 무작위 출제에서 제외합니다.'},
+ fr:{deselectCurrent:'Désélectionner ce cas',currentDeselected:'Cas désélectionné',deselectCurrentHint:'Décocher ce cas dans la liste et l’exclure des prochains mélanges aléatoires.'},
+ de:{deselectCurrent:'Diesen Fall abwählen',currentDeselected:'Fall abgewählt',deselectCurrentHint:'Diesen Fall unten abwählen und von künftigen zufälligen Scrambles ausschließen.'}
+};
+for(const[locale,labels]of Object.entries(currentCaseLabels))Object.assign(sq1Dictionaries[locale],labels);
 export function sq1Text(language,key,params={}){let value=(sq1Dictionaries[language]||en)[key]||en[key]||key;for(const[k,v]of Object.entries(params))value=value.replaceAll('{'+k+'}',String(v));return value;}

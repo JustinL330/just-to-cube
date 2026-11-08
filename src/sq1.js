@@ -47,7 +47,7 @@ export function initSQ1({language,settings,save,toast=()=>{}}){
  <div class="sq1-layout"><section class="sq1-practice card" aria-labelledby="sq1PracticeTitle"><div class="sq1-section-top"><h2 id="sq1PracticeTitle" data-sq="train"></h2><span class="sq1-badge" id="sq1CurrentDepth"></span></div>
  <div id="sq1Status" class="sq1-status" role="status" aria-live="polite"></div><div id="sq1CurrentDiagram" class="sq1-current-diagram"></div>
  <div id="sq1ScrambleArea"><p class="sq1-caption" data-sq="scramble"></p><p class="sq1-scramble-key"><span class="sq1-colour-phase" data-sq="colourPhase"></span><span aria-hidden="true"> → </span><span class="sq1-shape-phase" data-sq="shapePhase"></span></p><p id="sq1ScrambleText" class="sq1-scramble"></p><p class="sq1-star-help muted" data-sq="starHint"></p></div>
- <div class="sq1-actions"><button type="button" class="primary" id="sq1New" data-sq="newScramble"></button><button type="button" class="secondary" id="sq1Repeat" data-sq="repeat"></button><button type="button" class="secondary" id="sq1Copy" data-sq="copy"></button></div>
+ <div class="sq1-actions"><button type="button" class="primary" id="sq1New" data-sq="newScramble"></button><button type="button" class="secondary" id="sq1Repeat" data-sq="repeat"></button><button type="button" class="secondary" id="sq1Copy" data-sq="copy"></button><button type="button" class="secondary" id="sq1Deselect" data-sq="deselectCurrent" aria-describedby="sq1SelectedCount"></button></div>
  <button type="button" class="sq1-reveal" id="sq1Reveal" data-sq="reveal"></button><p class="sq1-goal muted" data-sq="goalHint"></p>
  </section><aside class="sq1-labels card"><p class="eyebrow">01 / 02</p><h2 data-sq="display"></h2><label class="sq1-toggle"><span data-sq="names"></span><input type="checkbox" id="sq1Names"></label><label class="sq1-toggle"><span data-sq="codes"></span><input type="checkbox" id="sq1Codes"></label><p class="muted sq1-legend" data-sq="legend"></p><div class="sq1-notation"><code>(a,b) /</code><p data-sq="turnHint"></p></div></aside></div>
  <section id="sq1SolutionSection" class="sq1-solutions card" hidden aria-labelledby="sq1SolutionsTitle"><div class="sq1-section-top"><div><p class="eyebrow">SOLUTION</p><h2 id="sq1SolutionsTitle" data-sq="solutions"></h2></div><span id="sq1SolutionCount" class="sq1-badge"></span></div><p class="muted sq1-route-note" data-sq="routeHint"></p>
@@ -101,6 +101,10 @@ export function initSQ1({language,settings,save,toast=()=>{}}){
   $('#sq1Names').checked=prefs.showNames;$('#sq1Codes').checked=prefs.showCodes;
   for(const id of ['sq1Names','sq1Codes','sq1All','sq1None','sq1SelectVisible','sq1ClearVisible'])$('#'+id).disabled=!loaded;
   $('#sq1New').disabled=busy||!loaded||!prefs.selectedCases.length;$('#sq1Repeat').disabled=busy||!current;$('#sq1Copy').disabled=busy||!current;$('#sq1Reveal').disabled=busy||!current;
+  const currentSelected=!!current&&prefs.selectedCases.includes(current.caseId);
+  $('#sq1Deselect').disabled=!loaded||busy||!currentSelected;
+  $('#sq1Deselect').textContent=t(current&&!currentSelected?'currentDeselected':'deselectCurrent');
+  $('#sq1Deselect').title=t('deselectCurrentHint');
   $('#sq1Reveal').textContent=t(revealed?'hide':'reveal');
   $('#sq1Status').replaceChildren(node('span',t(failure?'error':!busy&&!prefs.selectedCases.length&&!current?'empty':statusKey)));
   $('#sq1Status').classList.toggle('sq1-error',failure);$('#sq1Status').classList.toggle('sq1-busy',busy);
@@ -170,6 +174,12 @@ export function initSQ1({language,settings,save,toast=()=>{}}){
  }
  async function copy(text){try{await navigator.clipboard.writeText(text);toast(t('copied'));}catch{toast(t('copyError'));}}
  function changeSelection(action){const visible=new Set(matchingCases().map(c=>c.id));prefs.selectedCases=action==='all'?catalog.map(c=>c.id):action==='none'?[]:action==='add'?[...new Set([...prefs.selectedCases,...visible])]:prefs.selectedCases.filter(id=>!visible.has(id));persist();renderCases();renderControls();}
+ function deselectCurrent(){
+  if(!loaded||busy||!current||!prefs.selectedCases.includes(current.caseId))return;
+  prefs.selectedCases=prefs.selectedCases.filter(id=>id!==current.caseId);
+  persist();renderCases();renderControls();
+ }
+ $('#sq1Deselect').onclick=deselectCurrent;
  $('#sq1New').onclick=()=>generate();$('#sq1Repeat').onclick=()=>generate(true);$('#sq1Copy').onclick=()=>current&&copy(current.scramble);$('#sq1Reveal').onclick=revealSolutions;
  $('#sq1CopySolution').onclick=()=>analysis&&copy(analysis.routes[routeIndex].alg);
  $('#sq1Prev').onclick=()=>{if(analysis&&routeIndex>0){routeIndex--;frameIndex=0;renderSolution();}};$('#sq1Next').onclick=()=>{if(analysis&&routeIndex<analysis.routes.length-1){routeIndex++;frameIndex=0;renderSolution();}};$('#sq1SolutionSelect').onchange=e=>{routeIndex=Number(e.target.value);frameIndex=0;renderSolution();};
