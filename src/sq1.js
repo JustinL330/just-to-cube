@@ -12,14 +12,17 @@ function polarPoint(angle,r){return point(angle*30,r);}
 
 // The outer point of each 60-degree corner lies on the true square perimeter.
 // Drawing every piece as a circular sector would incorrectly make Square round.
-export function layerDiagram(layer,{mini=false,t=k=>k,plain=false}={}){
- const svg=svgNode('svg',{viewBox:'0 0 120 120',role:'img','aria-label':layerCode(layer),class:'sq1-layer-svg'});
+export function layerDiagram(layer,{side='top',mini=false,t=k=>k,plain=false}={}){
+ const svg=svgNode('svg',{viewBox:'0 0 120 120',role:'img','aria-label':layerCode(layer),class:'sq1-layer-svg','data-layer':side});
  const pieces=layerPieces(layer),pattern=layerCode(layer);
+ // Face-on D starts opposite U: / exchanges U[6..11] with D[0..5].
+ // Rotate the bottom view by 180 degrees so both depict the right-hand cut.
+ const facePoint=(angle,r)=>polarPoint(angle+(side==='bottom'?6:0),r);
  for(const piece of pieces){
   const shape=plain?null:PIECE_MAP.get(piece.id),start=piece.start,end=start+piece.width;
-  const pts=[[60,60],polarPoint(start,38)];
-  if(piece.width===2)pts.push(polarPoint(start+1,38*1.366025403784));
-  pts.push(polarPoint(end,38));
+  const pts=[[60,60],facePoint(start,38)];
+  if(piece.width===2)pts.push(facePoint(start+1,38*1.366025403784));
+  pts.push(facePoint(end,38));
   const polygon=svgNode('polygon',{points:pts.map(p=>p.map(n=>n.toFixed(3)).join(',')).join(' '),fill:plain?'var(--sq1-mini-fill)':shape?.face==='U'?'#f1d465':'#f9faf3',stroke:'#263b32','stroke-width':mini?1.1:1.35,'stroke-linejoin':'round'});
   svg.append(polygon);
  }
@@ -32,7 +35,7 @@ export function layerDiagram(layer,{mini=false,t=k=>k,plain=false}={}){
    const candidate=ordered.slice(i).concat(ordered.slice(0,i)).map(p=>p.width===2?'C':'E').join('');
    if(candidate===pattern){origin=ordered[i];break;}
   }
-  if(origin){const p=polarPoint(origin.start,45),dot=svgNode('circle',{cx:p[0],cy:p[1],r:2.5,fill:'var(--green)',stroke:'var(--card)','stroke-width':1});const title=svgNode('title');title.textContent=t('reading');dot.append(title);svg.append(dot);}
+  if(origin){const p=facePoint(origin.start,45),dot=svgNode('circle',{cx:p[0],cy:p[1],r:2.5,fill:'var(--green)',stroke:'var(--card)','stroke-width':1});const title=svgNode('title');title.textContent=t('reading');dot.append(title);svg.append(dot);}
   svg.append(svgNode('path',{d:'M 86 13 A 52 52 0 0 1 103 32',fill:'none',stroke:'var(--green)','stroke-width':1.2}),svgNode('path',{d:'M 99 30 L 103 33 L 104 28',fill:'none',stroke:'var(--green)','stroke-width':1.2}));
  }
  return svg;
@@ -74,7 +77,7 @@ export function initSQ1({language,settings,save,toast=()=>{}}){
   try{ids=identifyLayers(state);}catch{ids=[];}
   for(const [i,side]of ['top','bottom'].entries()){
    const figure=node('figure',undefined,'sq1-layer');if(!mini)figure.append(node('figcaption',t(side),'sq1-layer-label'));
-   figure.append(layerDiagram(state[side],{mini,t,plain}));
+   figure.append(layerDiagram(state[side],{side,mini,t,plain}));
    const shape=SHAPE_MAP.get(ids[i]);if(prefs.showNames&&shape)figure.append(node('strong',shapeName(shape.id),'sq1-shape-name'));
    if(prefs.showCodes)figure.append(node('code',layerCode(state[side]),'sq1-ce'));
    pair.append(figure);
