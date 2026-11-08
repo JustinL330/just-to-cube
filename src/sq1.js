@@ -105,9 +105,9 @@ export function initSQ1({language,settings,save,toast=()=>{}}){
   for(const id of ['sq1Names','sq1Codes','sq1All','sq1None','sq1SelectVisible','sq1ClearVisible'])$('#'+id).disabled=!loaded;
   $('#sq1New').disabled=busy||!loaded||!prefs.selectedCases.length;$('#sq1Repeat').disabled=busy||!current;$('#sq1Copy').disabled=busy||!current;$('#sq1Reveal').disabled=busy||!current;
   const currentSelected=!!current&&prefs.selectedCases.includes(current.caseId);
-  $('#sq1Deselect').disabled=!loaded||busy||!currentSelected;
-  $('#sq1Deselect').textContent=t(current&&!currentSelected?'currentDeselected':'deselectCurrent');
-  $('#sq1Deselect').title=t('deselectCurrentHint');
+  $('#sq1Deselect').disabled=!loaded||busy||!current;
+  $('#sq1Deselect').textContent=t(current&&!currentSelected?'reselectCurrent':'deselectCurrent');
+  $('#sq1Deselect').title=t(current&&!currentSelected?'reselectCurrentHint':'deselectCurrentHint');
   $('#sq1Reveal').textContent=t(revealed?'hide':'reveal');
   $('#sq1Status').replaceChildren(node('span',t(failure?'error':!busy&&!prefs.selectedCases.length&&!current?'empty':statusKey)));
   $('#sq1Status').classList.toggle('sq1-error',failure);$('#sq1Status').classList.toggle('sq1-busy',busy);
@@ -177,12 +177,12 @@ export function initSQ1({language,settings,save,toast=()=>{}}){
  }
  async function copy(text){try{await navigator.clipboard.writeText(text);toast(t('copied'));}catch{toast(t('copyError'));}}
  function changeSelection(action){const visible=new Set(matchingCases().map(c=>c.id));prefs.selectedCases=action==='all'?catalog.map(c=>c.id):action==='none'?[]:action==='add'?[...new Set([...prefs.selectedCases,...visible])]:prefs.selectedCases.filter(id=>!visible.has(id));persist();renderCases();renderControls();}
- function deselectCurrent(){
-  if(!loaded||busy||!current||!prefs.selectedCases.includes(current.caseId))return;
-  prefs.selectedCases=prefs.selectedCases.filter(id=>id!==current.caseId);
+ function toggleCurrentSelection(){
+  if(!loaded||busy||!current)return;
+  prefs.selectedCases=prefs.selectedCases.includes(current.caseId)?prefs.selectedCases.filter(id=>id!==current.caseId):[...prefs.selectedCases,current.caseId];
   persist();renderCases();renderControls();
  }
- $('#sq1Deselect').onclick=deselectCurrent;
+ $('#sq1Deselect').onclick=toggleCurrentSelection;
  $('#sq1New').onclick=()=>generate();$('#sq1Repeat').onclick=()=>generate(true);$('#sq1Copy').onclick=()=>current&&copy(current.scramble);$('#sq1Reveal').onclick=revealSolutions;
  $('#sq1CopySolution').onclick=()=>analysis&&copy(analysis.routes[routeIndex].alg);
  $('#sq1Prev').onclick=()=>{if(analysis&&routeIndex>0){routeIndex--;frameIndex=0;renderSolution();}};$('#sq1Next').onclick=()=>{if(analysis&&routeIndex<analysis.routes.length-1){routeIndex++;frameIndex=0;renderSolution();}};$('#sq1SolutionSelect').onchange=e=>{routeIndex=Number(e.target.value);frameIndex=0;renderSolution();};

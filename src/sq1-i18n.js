@@ -37,13 +37,13 @@ const scrambleLabels={
 };
 for(const[locale,labels]of Object.entries(scrambleLabels))Object.assign(sq1Dictionaries[locale],labels);
 const currentCaseLabels={
- en:{deselectCurrent:'Deselect this case',currentDeselected:'Case deselected',deselectCurrentHint:'Uncheck this case below and exclude it from future random scrambles.'},
- zh_cn:{deselectCurrent:'取消当前 case',currentDeselected:'当前 case 已取消',deselectCurrentHint:'同步取消下方对应 case 的勾选，后续新打乱不再随机抽到它。'},
- zh_hk:{deselectCurrent:'取消目前 case',currentDeselected:'目前 case 已取消',deselectCurrentHint:'同步取消下方對應 case 的勾選，之後新打亂不再隨機抽到它。'},
- ja:{deselectCurrent:'このケースを選択解除',currentDeselected:'ケースの選択解除済み',deselectCurrentHint:'下の該当ケースのチェックを外し、次のランダム出題から除外します。'},
- ko:{deselectCurrent:'현재 케이스 선택 해제',currentDeselected:'케이스 선택 해제됨',deselectCurrentHint:'아래 해당 케이스의 체크를 해제하고 이후 무작위 출제에서 제외합니다.'},
- fr:{deselectCurrent:'Désélectionner ce cas',currentDeselected:'Cas désélectionné',deselectCurrentHint:'Décocher ce cas dans la liste et l’exclure des prochains mélanges aléatoires.'},
- de:{deselectCurrent:'Diesen Fall abwählen',currentDeselected:'Fall abgewählt',deselectCurrentHint:'Diesen Fall unten abwählen und von künftigen zufälligen Scrambles ausschließen.'}
+ en:{deselectCurrent:'Deselect this case',reselectCurrent:'Reselect this case',deselectCurrentHint:'Uncheck this case below and exclude it from future random scrambles.',reselectCurrentHint:'Check this case below and include it in future random scrambles again.'},
+ zh_cn:{deselectCurrent:'取消当前 case',reselectCurrent:'重新选择当前 case',deselectCurrentHint:'同步取消下方对应 case 的勾选，后续新打乱不再随机抽到它。',reselectCurrentHint:'同步勾选下方对应 case，后续新打乱可以再次随机抽到它。'},
+ zh_hk:{deselectCurrent:'取消目前 case',reselectCurrent:'重新選擇目前 case',deselectCurrentHint:'同步取消下方對應 case 的勾選，之後新打亂不再隨機抽到它。',reselectCurrentHint:'同步勾選下方對應 case，之後新打亂可以再次隨機抽到它。'},
+ ja:{deselectCurrent:'このケースを選択解除',reselectCurrent:'このケースを再選択',deselectCurrentHint:'下の該当ケースのチェックを外し、次のランダム出題から除外します。',reselectCurrentHint:'下の該当ケースにチェックを入れ、次のランダム出題に再び含めます。'},
+ ko:{deselectCurrent:'현재 케이스 선택 해제',reselectCurrent:'현재 케이스 다시 선택',deselectCurrentHint:'아래 해당 케이스의 체크를 해제하고 이후 무작위 출제에서 제외합니다.',reselectCurrentHint:'아래 해당 케이스를 체크하고 이후 무작위 출제에 다시 포함합니다.'},
+ fr:{deselectCurrent:'Désélectionner ce cas',reselectCurrent:'Resélectionner ce cas',deselectCurrentHint:'Décocher ce cas dans la liste et l’exclure des prochains mélanges aléatoires.',reselectCurrentHint:'Cocher ce cas dans la liste et le réinclure dans les prochains mélanges aléatoires.'},
+ de:{deselectCurrent:'Diesen Fall abwählen',reselectCurrent:'Diesen Fall wieder auswählen',deselectCurrentHint:'Diesen Fall unten abwählen und von künftigen zufälligen Scrambles ausschließen.',reselectCurrentHint:'Diesen Fall unten auswählen und wieder in künftige zufällige Scrambles aufnehmen.'}
 };
 for(const[locale,labels]of Object.entries(currentCaseLabels))Object.assign(sq1Dictionaries[locale],labels);
 export function sq1Text(language,key,params={}){let value=(sq1Dictionaries[language]||en)[key]||en[key]||key;for(const[k,v]of Object.entries(params))value=value.replaceAll('{'+k+'}',String(v));return value;}
