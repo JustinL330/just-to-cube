@@ -1,6 +1,6 @@
 import {sessionUser,bodyJSON,limit} from './account-worker.js';
 import {createPasswordRecord,verifyPassword,DUMMY_PASSWORD_RECORD} from './passwords.js';
-import {encryptionConfigured,seal,unseal,sealText,unsealText} from './forum-crypto.js';
+import {encryptionConfigured,isSealed,seal,unseal,sealText,unsealText} from './forum-crypto.js';
 import {forumSchema} from './forum-schema.js';
 const initialized=new WeakMap();
 const headers={'Cache-Control':'no-store, private','Vary':'Cookie','X-Content-Type-Options':'nosniff','Cross-Origin-Resource-Policy':'same-origin'};
@@ -8,6 +8,7 @@ const json=(data,status=200)=>Response.json(data,{status,headers});
 const fail=(code,status=400)=>{throw Object.assign(Error(code),{status})};
 const validId=s=>/^[a-f0-9-]{36}$/.test(s||'');
 const canRead="(p.zone_id IS NULL OR EXISTS(SELECT 1 FROM forum_members m WHERE m.zone_id=p.zone_id AND m.user_id=?))";
+const encryptionZone=id=>id==='public'?'public':id;
 async function schema(db){let pending=initialized.get(db);if(!pending){pending=db.batch(forumSchema.map(sql=>db.prepare(sql))).catch(e=>{initialized.delete(db);throw e});initialized.set(db,pending)}await pending;}
 const passwordOK=p=>typeof p==='string'&&p.length>=12&&p.length<=128;
 function publicZone(){return {id:'public',name:'Public zone',owner_id:null,member_count:null};}
@@ -36,7 +37,7 @@ export async function handleForum(request,env){
   if(path[0]==='images'&&path.length===2&&method==='GET'){
    const row=await db.prepare(`SELECT i.data,i.mime,p.zone_id FROM forum_images i JOIN forum_posts p ON p.id=i.post_id WHERE i.id=? AND ${canRead}`).bind(path[1],uid).first();
    if(!row)fail('not_found',404);
-   const bytes=row.zone_id?await unseal(row.data,env,row.zone_id):new Uint8Array(row.data);
+   const bytes=row.zone_id?await unseal(row.data,env,row.zone_id):isSealed(row.data)?await unseal(row.data,env,encryptionZone('public')):new Uint8Array(row.data);
    return new Response(bytes,{headers:{...headers,'Content-Type':row.mime,'Content-Length':String(bytes.length),'Content-Security-Policy':"default-src 'none'; sandbox"}});
   }
   if(path[0]==='zones'&&path[1]&&path[2]==='posts'&&path.length===3&&method==='GET'){
@@ -47,7 +48,7 @@ export async function handleForum(request,env){
    const rows=(await db.prepare(`SELECT p.id,p.user_id,p.body,p.created_at,p.zone_id,p.summary,u.username,u.display_name FROM ${source} p JOIN users u ON u.id=p.user_id WHERE ${path[1]==='public'?'p.zone_id IS NULL':'p.zone_id=?'} AND ${canRead} AND (p.created_at || '|' || p.id)<? ORDER BY p.created_at DESC,p.id DESC LIMIT 31`).bind(...(path[1]==='public'?[]:[path[1]]),uid,cursor).all()).results;
    const more=rows.length>30;rows.splice(30);const ids=rows.map(p=>p.id);
    const images=ids.length?(await db.prepare(`SELECT i.id,i.post_id FROM forum_images i JOIN forum_posts p ON p.id=i.post_id WHERE i.post_id IN (${ids.map(()=>'?').join(',')}) AND ${canRead} ORDER BY i.position`).bind(...ids,uid).all()).results:[];
-   const posts=await Promise.all(rows.map(async p=>({...p,body:p.zone_id?await unsealText(p.body,env,p.zone_id):p.body,summary:p.summary?JSON.parse(p.summary):null,images:images.filter(i=>i.post_id===p.id).map(i=>({id:i.id,url:'/api/forum/images/'+i.id}))})));
+   const posts=await Promise.all(rows.map(async p=>({...p,body:p.zone_id?await unsealText(p.body,env,p.zone_id):p.body.startsWith('v1:')?await unsealText(p.body,env,encryptionZone('public')):p.body,summary:p.summary?JSON.parse(p.summary):null,images:images.filter(i=>i.post_id===p.id).map(i=>({id:i.id,url:'/api/forum/images/'+i.id}))})));
    return json({zone,posts,next:more?rows.at(-1).created_at+'|'+rows.at(-1).id:null});
   }
   if(!user)fail('login_required',401);
@@ -98,11 +99,12 @@ export async function handleForum(request,env){
   }
   if(path[0]==='zones'&&path[1]&&path[2]==='posts'&&path.length===3&&method==='POST'){
    const id=path[1],zone=await accessible(db,id,uid);if(!zone)fail('not_found',404);
+   if(!encryptionConfigured(env))fail('encryption_unavailable',503);
    const b=await bodyJSON(request,2200000);if(typeof b.text!=='string'||b.text.length>5000||!Array.isArray(b.images)||b.images.length>3||(!b.text.trim()&&!b.images.length))fail('invalid_post');
    if(!await limit(db,'forum-post:'+uid,30,3600000))fail('forum_rate',429);
-   const bytes=b.images.map(decodeImage),privateZone=id!=='public',postId=crypto.randomUUID(),body=privateZone?await sealText(b.text.trim(),env,id):b.text.trim();
+   const bytes=b.images.map(decodeImage),privateZone=id!=='public',postId=crypto.randomUUID(),body=await sealText(b.text.trim(),env,encryptionZone(id));
    const write=db.prepare('INSERT INTO forum_posts(id,zone_id,user_id,body,created_at) SELECT ?,?,?,?,? WHERE ? IS NULL OR EXISTS(SELECT 1 FROM forum_members WHERE zone_id=? AND user_id=?)').bind(postId,privateZone?id:null,uid,body,new Date().toISOString(),privateZone?id:null,id,uid);
-   const attachments=await Promise.all(bytes.map(async(data,index)=>db.prepare('INSERT INTO forum_images(id,post_id,mime,data,position) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM forum_posts WHERE id=?)').bind(crypto.randomUUID(),postId,b.images[index].type,(privateZone?await seal(data,env,id):data).buffer,index,postId)));
+   const attachments=await Promise.all(bytes.map(async(data,index)=>db.prepare('INSERT INTO forum_images(id,post_id,mime,data,position) SELECT ?,?,?,?,? WHERE EXISTS(SELECT 1 FROM forum_posts WHERE id=?)').bind(crypto.randomUUID(),postId,b.images[index].type,(await seal(data,env,encryptionZone(id))).buffer,index,postId)));
    const results=await db.batch([write,...attachments]);if(!results[0].meta.changes)fail('not_found',404);return json({id:postId},201);
   }
   if(path[0]==='posts'&&path[1]&&path.length===2&&method==='DELETE'){

@@ -1,28 +1,28 @@
 # just-to-cube
 
-A responsive, independently built cubing timer and WCA data explorer, inspired by csTimer and DCTimer.
+[Open the website](https://jus-to-cube.pages.dev/#sq1) · [Source](https://github.com/JustinL330/just-to-cube)
 
-## Live website
+A multilingual Square-1 shape trainer and cubing community. English, Simplified Chinese, Traditional Chinese, Japanese, Korean, French and German are supported. Accounts, AI coach, forum zones and private messages remain available.
 
-**[Open just-to-cube](https://jus-to-cube.pages.dev)** — the deployed app is public and does not require GitHub repository access or a GitHub account.
+## Square-1 shape training
 
-Source repository: [JustinL330/just-to-cube](https://github.com/JustinL330/just-to-cube)
+- Select from 29 single-layer shapes and 90 unordered top/bottom combinations. Layer swaps are grouped in the selector; the solver tracks all 170 ordered combinations. Mirrored shapes remain distinct.
+- Multi-select cases, search names or C/E codes, filter by minimum slice count, select all/none, generate another scramble, repeat a case, and copy the scramble.
+- Selected cases are sampled uniformly. Existing cubing.js random-state SQ1 scrambles are followed by a legal shape connection to the selected case. These are targeted training scrambles, rather than a claim of uniform full-state competition scrambles.
+- Reveal all shortest shape routes. Each route has a runnable formula, written turn instructions, and initial / after-rotation / after-slice diagrams. Select another route or click a step to synchronize the formula and picture.
+- Independent persistent switches control bilingual Chinese/English shape names and canonical C/E ring codes. C = corner (60 degrees); E = edge (30 degrees). Square = `CECECECE`. The diagram marks where to begin reading clockwise.
 
-## Features
+Optimal means **fewest `/` turns**. Layer rotations are free. The goal is two square layers, ignoring piece colours, middle-layer orientation and CSP parity. Solutions are deduplicated by their ordered layer-shape sequence; formulas differing only in layer angles are represented by one executable formula per route. A reverse BFS distance table and a strictly descending shortest-path graph enumerate every optimal shape route, with no arbitrary solution cap. There are at most 7 slices to cube shape in this model.
 
-- Flag-labelled language picker and a light/dark toggle beside it, with a polished hand-held cube app icon.
-- English (default), Traditional Chinese (Hong Kong), Simplified Chinese, Japanese, Korean, French and German.
-- Fixed viewport timer layout; Space controls the timer without scrolling the page. Long lists use internal panels.
-- Millisecond display (three decimal places) for the live timer, solves, averages and exports; official WCA results retain their source precision.
-- Spacebar/touch timer: hold for 300 ms and release to start, then press a key or touch to stop.
-- Optional 15-second inspection; +2 from 15 seconds and DNF from 17 seconds. Escape cancels inspection.
-- Scrambles and 2D puzzle previews for 2×2–7×7, Clock, Megaminx, Pyraminx, Skewb, Square-1, one-handed and blindfolded events, using self-hosted cubing.js.
-- Grouped selector with all 17 WCA event types, FTO, Baby FTO, Master Tetraminx, Kilominx and Redi Cube. Additional 8×8–11×11 and R U / R U L / M U training use explicitly labelled random-move practice scrambles. Large-cube previews are not available. Multi-Blind practice generates one cube at a time.
-- Multiple sessions, best single, mean, ao5/ao12 (trimmed averages), history, graph, manual entry, +2/DNF editing and undoable solve removal.
-- JSON backup export and additive import; CSV session export. Data remains in localStorage on the current device/browser.
-- WCA competitor, competition and WCA-ID personal record search through a fixed-source Worker endpoint. WCA is an external dependency; failures are shown explicitly. Other website searches open external websites, with some using Bing site search.
-- AI coach with DeepSeek → NVIDIA → Next Router fallback, seven UI languages, conversation context, suggested questions, cancellation and opt-in session summaries.
-- Self-hosted scripts, styles and scramble workers; offline caching through a service worker. No Google fonts, runtime CDN or telemetry. Accounts are optional for cloud sync and private messaging.
+The state engine preserves all eight corners and eight edges, rejects cuts through corners, and replays every generated scramble and solution. Search and generation run in a same-origin module worker, with stale-request cancellation, timeouts and retry controls. The worker, diagrams and puzzle dependencies are served locally and included in offline caching.
+
+Timer, Explore and Sessions pages have been retired. Their hashes, the home page and brand link lead to `#sq1`. Existing saved sessions remain in backups and account payloads for compatibility; they are not erased. New preferences use `settings.sq1`. Export/import in Settings retains the existing backup format. Changing account resets the current trainer state and restores that account's preferences. AI case sharing remains opt-in.
+
+The appearance and shape terminology refer to [Squanmate](https://squanmate.cuber.pro/) ([source](https://github.com/mikavilpas/squanmate), EPL-1.0) and [CubeRoot](https://cuberoot.me/). The new engine and SVG diagrams are independently implemented; no chart image or compiled Squanmate solver is shipped. Shape names are learning labels; Chinese names can vary between communities.
+
+## Validation
+
+`npm test` includes exhaustive shortest-route enumeration/replay for all 170 ordered shape states, independent dynamic-programming route counts, all 90 target-case generation checks and differential piece-state validation against the existing cubing.js model. It also covers account, forum and messaging authorization and data compatibility. Local Worker/SQLite tests need permission to start local test services.
 
 ## Development
 
@@ -45,23 +45,23 @@ For Git integration, connect **JustinL330/just-to-cube**, production branch `mai
 - Build output directory: `dist`
 - Root directory: repository root
 
-`wrangler.jsonc` configures Pages. `functions/api/[[path]].js` routes `/api/*` to `worker.js`. `wrangler.worker.jsonc` also supports standalone Workers deployment with `npx wrangler deploy --config wrangler.worker.jsonc`. The timer and WCA search need no secrets or database bindings. The optional AI coach uses the provider configuration below. Subsequent pushes to `main` trigger builds through Cloudflare's Git integration.
+`wrangler.jsonc` configures Pages. `functions/api/[[path]].js` routes `/api/*` to `worker.js`. `wrangler.worker.jsonc` also supports standalone Workers deployment with `npx wrangler deploy --config wrangler.worker.jsonc`. The SQ1 trainer needs no secrets or database bindings. The optional AI coach uses the provider configuration below. Subsequent pushes to `main` trigger builds through Cloudflare's Git integration.
 
 ## Mainland China access
 
 The app avoids dependencies often unavailable in mainland China. All app and puzzle assets are served from the same host. After offline caching finishes (check Settings), practice works without the network. An initial successful HTTPS visit is required.
 
-**A pages.dev or workers.dev address does not guarantee accessibility from mainland China.** A custom domain or a domestic mirror and testing on mainland networks may be necessary. WCA/Bing/Bilibili and other external websites have their own availability. The Worker retrieves WCA data server-side with a 12-second timeout and a 5-minute edge cache, so the visitor's browser does not connect directly to WCA for embedded search.
+**A pages.dev or workers.dev address does not guarantee accessibility from mainland China.** A custom domain or a domestic mirror and testing on mainland networks may be necessary. External resources have their own availability.
 
 ## Data and limitations
 
-This is a practice tool, not an official WCA scrambling program. WCA data is public website data and its endpoints may change. It is cached for 5 minutes; no claim is made of complete results or availability. Export regular backups before changing browser/device or clearing site data. Signed-in users can save their sessions, dates, results, penalties and settings to their private account. Guest data remains local.
+This is a practice tool, not an official WCA scrambling program. Export regular backups before changing browser/device or clearing site data. Signed-in users can save their sessions, dates, results, penalties and settings to their private account. Guest data remains local.
 
 ## Credits and licensing
 
 Original app code: MIT (see LICENSE). cubing.js 0.66.1: MPL-2.0 OR GPL-3.0-or-later; used here under MPL-2.0, with notices distributed in `dist/vendor`. Its unchanged source is available from the pinned npm package and https://github.com/cubing/cubing.js. Other dependencies retain their licenses. No csTimer source is copied. csTimer is an inspiration/reference only. Not affiliated with WCA, csTimer, or Rubik's brand owners.
 
-For direct upload, run `npm run build`, zip the contents of `dist` (with index.html at the archive root), and upload it to a Cloudflare Pages Direct Upload project. `_worker.js` and `_routes.json` contain the search backend and its API routes. `deployment/jus-cubing-cloudflare.zip` is the prebuilt upload package. Direct Upload does not automatically deploy future GitHub pushes.
+For direct upload, run `npm run build`, zip the contents of `dist` (with index.html at the archive root), and upload it to a Cloudflare Pages Direct Upload project. `_worker.js` and `_routes.json` contain the account, community and AI backend routes. `deployment/jus-cubing-cloudflare.zip` is the prebuilt upload package. Direct Upload does not automatically deploy future GitHub pushes.
 
 ## NVIDIA AI coach
 
@@ -75,9 +75,9 @@ The AI coach uses `/api/ai` on the same host. Cloudflare calls the fixed NVIDIA 
 
 For standalone Workers, use `npx wrangler secret put NVIDIA_API_KEY --config wrangler.worker.jsonc`, configure `NVIDIA_MODEL` in Worker settings/vars, and deploy. For local Pages testing, create an ignored `.dev.vars` with these two variables. Never put a key in source, browser storage, public assets or a GitHub issue.
 
-The chat uses built-in guides until at least one provider key is configured. Provider authentication, unavailable-model, quota and timeout errors are reported; there are no fabricated fallback answers. Provider attempts share a 42-second timeout budget, 1,200 output-token cap, limited history, request-size validation, same-origin browser enforcement and no caching. Output is rendered as plain text. AI has no live web search; use Explore for current WCA data.
+The chat uses built-in guides until at least one provider key is configured. Provider authentication, unavailable-model, quota and timeout errors are reported; there are no fabricated fallback answers. Provider attempts share a 42-second timeout budget, 1,200 output-token cap, limited history, request-size validation, same-origin browser enforcement and no caching. Output is rendered as plain text. AI has no live web search.
 
-Messages stay in tab memory (not localStorage) until New chat or closing/reloading. Chat context is sent to the first successful configured provider in the fallback order described below. Session summary sharing is off by default; enabling it reveals the exact event/statistics/recent-times summary attached to the next question. Names, full backups and scrambles are not attached automatically. Stopping a request cancels the browser's wait; an already submitted provider request may still count toward quota.
+Messages stay in tab memory (not localStorage) until New chat or closing/reloading. Chat context is sent to the first successful configured provider in the fallback order described below. Current SQ1 case sharing is off by default; enabling it previews the exact details attached to the next question. Names and full backups are not attached automatically. Stopping a request cancels the browser's wait; an already submitted provider request may still count toward quota.
 
 Best-effort rate limiting allows six requests per minute per IP per Worker isolate. It is not a global quota guarantee. The handler optionally uses a Cloudflare rate-limiting binding named `AI_RATE_LIMITER` when configured. Before opening a shared developer key to significant public traffic, configure distributed edge limits and monitor NVIDIA usage; there is no automatic paid upgrade. Fallback requests use the configured provider accounts and can consume their balances.
 
@@ -89,7 +89,7 @@ Cloudflare D1 binding `DB` stores accounts, salted PBKDF2-SHA256 password hashes
 
 Registration/login uses a unique name and password (8–128 characters, with no required mix of uppercase letters, numbers or symbols), with an editable display name and short bio. All password and passphrase fields have a translated Show/Hide control, start hidden, and are hidden again on submission, form reset, navigation or tab hiding. Password changes revoke existing sessions. No email or password recovery is offered. Sessions use Secure, HttpOnly, SameSite cookies. All writes enforce same-origin JSON requests, prepared statements, account ownership and persistent login-attempt limits. Private API responses are never cached.
 
-Signed-in practice auto-saves, including solve timestamps, scramble types, scrambles, penalties, sessions and settings. Local per-account caches queue pending changes. A revision check prevents silent overwrites between devices; conflicts offer an explicit account reload or merge. Merge unions solve IDs and keeps the chosen local version of edited solves; a deleted solve may reappear when merging an older device copy. Guest practice stays separate and is imported only when the user chooses to add it. Cloud payloads are limited to 1.5 MB and 50,000 solves; export backups for larger archives. Closing before saving finishes can leave pending local changes; the account screen shows saved/pending status.
+Signed-in practice saves locally immediately; cloud upload uses Sync now, including legacy sessions and trainer preferences. Local per-account caches queue pending changes. A revision check prevents silent overwrites between devices; conflicts offer an explicit account reload or merge. Merge unions solve IDs and keeps the chosen local version of edited solves; a deleted solve may reappear when merging an older device copy. Guest practice stays separate and is imported only when the user chooses to add it. Cloud payloads are limited to 1.5 MB and 50,000 solves; export backups for larger archives. Closing before saving finishes can leave pending local changes; the account screen shows saved/pending status.
 
 Anyone can read the latest 50 check-ins. Only logged-in users can post or delete their own posts. Posts contain a public display name, bio and up to 500 characters; one post per account-local day is enforced in the database. Optional shared results are calculated server-side from that account's saved results for that day. All other results remain private. The account time zone is set from the browser at registration. The site references https://dctimer.cn/ for timer/training experience; no DCTimer source or branding is copied.
 
@@ -99,19 +99,9 @@ Passwords are never stored as plaintext. New registrations and password changes 
 
 `deployment/SHA256SUMS.txt` provides the SHA-256 digest of the direct-upload ZIP. Compare it before uploading to check the downloaded file's integrity. Hashing does not replace HTTPS or encrypt users' saved practice data at the application layer.
 
-## Coach and custom statistics
+## Built-in coaching guides
 
 Without NVIDIA configuration, the coach offers curated guides locally in all seven languages. These are explicitly labeled as built-in guides, not generative AI. Questions in guide mode are not sent to NVIDIA. When NVIDIA is configured, normal chat is available; failed AI requests offer a labeled guide fallback. Live AI still requires NVIDIA_API_KEY and NVIDIA_MODEL.
-
-Sessions includes an ao/mo selector and sample size. The default is ao5. aoN removes ceil(N × 5%) results from each end; moN uses all N results. +2 penalties count and untrimmed DNFs make the statistic DNF. Sizes are 3–1000 for ao and 1–1000 for mo. The selection affects the rolling table column and first timer average, and is saved in account settings (or on this device for guests). Both timer average titles open an editor for aoN, moN or Daily count. Daily count includes all sessions and DNFs for the local calendar day in the selected IANA time zone, defaulting to the account time zone or device time zone. The next midnight is calculated in that zone, including DST, and refreshes the counter automatically. The table shows the count for each row’s local date when Daily count is selected.
-
-Long algorithms use their natural height with adaptive text sizing, a smaller timer, and a full-screen expansion button. The mobile navigation is more compact. A separate cube-preview button opens a 2D diagram without occupying the timer layout; cubing.js puzzle geometry supports big-cube previews through 11×11.
-
-## Phase timing and session statistics
-
-Open Training on the Timer, or Statistics in Sessions. Phase timing is off by default. Users explicitly enable it and choose 2–8 phases. Phases are numbered; no method names or custom names are required. Hold and release Space/touch to start, then press Space or tap the timer at every phase boundary; the final phase stops the solve. Escape cancels without saving. Splits use the same monotonic clock as the total, and are saved with the solve in cloud accounts, backups and CSV exports. Phase averages group complete non-DNF solves by their saved phase sequence (new sessions use numbered phases), and exclude inspection time and +2 penalties. Manual entries have no inferred splits.
-
-Session statistics show best, slowest, mean of completed solves, median, population standard deviation and DNF count. The distribution histogram includes all completed solves, including +2; the trend view shows the last 200 attempts and leaves gaps at DNFs. These additions are inspired by the functionality listed at https://dctimer.cn/; they are an independent implementation.
 
 ## DeepSeek AI configuration
 
@@ -143,7 +133,7 @@ Zone passwords use the existing salted PBKDF2-SHA256 password record format (600
 
 Set **`FORUM_ENCRYPTION_KEY`** as an encrypted Cloudflare Pages **Production** secret before deploying this feature: a cryptographically random 32-byte value encoded as Base64. This key must remain stable and must not be committed to Git, exposed to browsers, reused from an AI provider key, or replaced when changing a zone password. Preserve it securely along with database backups. Changing or losing it without a data migration makes existing private content unreadable. Configure a separate key/database for any isolated preview or staging environment; do not share production data with untrusted previews.
 
-This is server-side encryption, **not end-to-end encryption**: the Worker decrypts authorized responses, and a server administrator with the key can access content. Public posts remain public. Zone names, authors, membership and timestamps are metadata stored unencrypted. Private APIs and attachments use `Cache-Control: no-store, private`, vary by cookie, and bypass the offline service worker. Revocation blocks subsequent requests; it cannot retract content someone has already viewed or saved.
+This is server-side encryption, **not end-to-end encryption**: the Worker decrypts authorized responses, and a server administrator with the key can access content. Public posts remain public; their stored text and images are encrypted with the same server-side key, with legacy plaintext records still readable. Zone names, authors, membership and timestamps are metadata stored unencrypted. Private APIs and attachments use `Cache-Control: no-store, private`, vary by cookie, and bypass the offline service worker. Revocation blocks subsequent requests; it cannot retract content someone has already viewed or saved.
 
 The idempotent forum schema bootstrap (`src/forum-schema.js`, matching `migrations/0002_forum.sql`) creates only the new forum tables and indexes on first use, leaving existing accounts and posts intact. Account tables must already exist. No manual production SQL step is needed for this existing deployment.
 
@@ -151,21 +141,12 @@ Validation: `node --test test/forum.test.mjs` checks real Worker/D1 authorizatio
 
 ## Encrypted direct messages
 
-Open **Messages**, sign in, and choose a separate messaging passphrase of at least 12 characters. Both users must enable Messages before starting a chat. Find a contact by their exact login username, then send text (up to 4,000 characters). New messages sync every 10 seconds while unlocked and visible, or with **Sync now**. Messages composed offline are encrypted and queued locally, then retried when online. A message is queued only after its encrypted local copy is saved successfully. Failed or rate-limited uploads stay in the outbox; retry with **Sync now**.
+Open **Messages**, sign in, and find contacts by exact username. The existing live device-key flow is preserved: it creates a non-extractable browser wrapping key and unlocks locally without a new passphrase prompt. It retains encrypted outbox messages, Markdown rendering and visible-page polling every five seconds. Device-local key material must be retained to read existing ciphertext; clearing browser storage does not recover a lost messaging key. Legacy passphrase vault utilities remain for compatibility.
 
-- Ciphertext and passphrase-encrypted key vaults persist in browser IndexedDB, scoped by account. The same ciphertext and encrypted key vaults are stored online in the existing Cloudflare D1 `DB`. Use the same messaging passphrase on another device to recover the private key and fetch message history. Passphrases and decrypted private keys are never sent to the server; plaintext drafts are not persisted. Locking or logging out removes the unlocked key and displayed messages from memory/UI. Retained local ciphertext can be unlocked only with the passphrase.
 - Web Crypto uses P-256 ECDH, HKDF-SHA-256 and AES-256-GCM with random 96-bit nonces. Message IDs, sender and recipient IDs are authenticated as additional data. Private-key vaults use AES-256-GCM with PBKDF2-SHA-256 (600,000 iterations and random salts), bound to the account ID. Public keys are immutable through the API, locally pinned and shown as SHA-256 fingerprints for comparison over another trusted channel.
-- This is a basic end-to-end encryption design, **not an independently audited secure messenger**. It has no forward secrecy: compromise of a private key can expose past messages. The server sees participants, timestamps and ciphertext lengths. A malicious server can substitute keys on first contact or serve modified client code. Fingerprints help verify contact identity; they do not protect against a compromised device or client. Use a strong, unique messaging passphrase. There is no forgotten-passphrase recovery or automatic key reset, so losing it loses access to old messages. Login password changes do not alter the messaging passphrase.
-- HTTPS and Web Crypto are required. The app must be open and unlocked to sync its outbox; it does not send in the background after the tab closes. Local copies depend on browser storage availability and may be cleared by the browser. The timer backup does not include messages. Online history remains available with the account and messaging passphrase.
+- This is a basic end-to-end encryption design, **not an independently audited secure messenger**. It has no forward secrecy: compromise of a private key can expose past messages. The server sees participants, timestamps and ciphertext lengths. A malicious server can substitute keys on first contact or serve modified client code. Fingerprints help verify contact identity; they do not protect against a compromised device or client. Losing a device wrapping key loses access to its message history; login-password changes do not replace that key.
+- HTTPS and Web Crypto are required. The app must be open and unlocked to sync its outbox; it does not send in the background after the tab closes. Local copies depend on browser storage availability and may be cleared by the browser. The Settings backup does not include message keys or message ciphertext.
 - `migrations/0003_messages.sql` defines the tables and indexes. The messaging Worker also initializes these idempotently on first authenticated use, allowing existing Pages databases to receive this feature through the usual Git deployment. Requests require the existing HttpOnly session, same-origin writes, ownership checks, size limits and a per-account send rate limit. Inbox queries include only the authenticated sender or recipient, use monotonic sequence cursors and return at most 100 records per page. Message IDs make retries idempotent.
 
 Tests cover vault recovery on a second device, wrong passphrases, ciphertext/identity tampering, unrelated keys, real D1 participant isolation, CSRF, input validation, immutable public keys, encrypted storage and retry deduplication.
-
-## Search results and region filters
-
-Explore searches competitor names and WCA IDs (including prefixes), competition names/cities, and WCA countries/represented regions. Choose a region to search it alone or combine it with a name/ID. Full region names and common aliases such as Hong Kong, 香港, UK and USA also work in the query field. The Personal records mode requires a full WCA ID; competitor cards offer a Personal records button.
-
-Searches with 0–20 matches display immediately. Searches with 21–100 matches show the count and ask whether to show all matches; cancelling returns to refining the criteria. More than 100 matches produces a narrowing prompt and no long result list. Exactly 100 still permits confirmation. Changing any criteria clears pending results and invalidates old requests. All seven interface languages include these controls and warnings.
-
-The backend uses the WCA person directory JSON endpoint (`/persons.json`, with `search`, `region`, `limit` and `offset`) for totals and represented-region filtering, rather than the capped autocomplete endpoint. Region IDs are from the public WCA countries catalogue. The directory can contain historical representations, which are retained as distinct entries with the corresponding region. Competitions use the paginated v0 API, its Total/Per-Page headers, and additional pages when necessary; incomplete upstream results return an error instead of claiming to show all matches. Data remains cached for five minutes.
 

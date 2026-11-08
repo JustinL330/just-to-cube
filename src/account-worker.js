@@ -84,5 +84,5 @@ export async function handleAccount(request,env){
    const id=decodeURIComponent(path.slice('/api/checkins/'.length));const result=await db.prepare('DELETE FROM checkins WHERE id=? AND user_id=?').bind(id,user.id).run();return result.meta.changes?json({ok:true}):json({error:'not_found'},404);
   }
   return json({error:'not_found'},404);
- }catch(e){const code=['invalid_request','too_large'].includes(e.message)?e.message:'account_unavailable';return json({error:code},code==='too_large'?413:code==='invalid_request'?400:503)}
+ }catch(e){console.error('account request failed',{path,method:request.method,name:e?.name,message:e?.message});const code=['invalid_request','too_large'].includes(e.message)?e.message:'account_unavailable';return json({error:code},code==='too_large'?413:code==='invalid_request'?400:503)}
 }

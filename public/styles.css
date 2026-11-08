@@ -101,3 +101,35 @@ header .account-button{width:auto;display:inline-flex;align-items:center;gap:6px
 .password-field>.password-toggle{flex:0 0 auto;align-self:center;margin:0;min-height:44px;min-width:64px;padding:8px 12px;font-size:12px}
 .password-toggle:focus-visible{outline:3px solid var(--green);outline-offset:2px}
 .search-region{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px}.search-region select{max-width:100%;flex:1;min-width:180px}.search-warning{border-left:3px solid var(--green);padding:12px;background:var(--soft)}#results .result-card>a{font-weight:600}#results .result-card .text-button{justify-self:start;margin-top:8px}
+
+/* Encrypted direct messages */
+#messagesPage{overflow-y:auto}.dm-panel{padding:22px;min-width:0}.dm-panel form{display:grid;gap:10px}.dm-panel label{font-size:12px;font-weight:600}#dmUnlockBox{max-width:580px}.dm-layout{display:grid;grid-template-columns:270px minmax(0,1fr);gap:18px;align-items:start}.dm-layout aside{display:block}.dm-panel button[type=submit]{justify-self:start}.dm-contacts{display:grid;gap:8px;margin:20px 0}.dm-contact{text-align:left;overflow-wrap:anywhere}.dm-contact.selected{background:var(--accent);color:var(--ink)}.dm-fingerprint{display:block;overflow-wrap:anywhere;white-space:normal;font-size:11px;margin:10px 0}.dm-chat details{margin-top:8px}#dmThread{height:clamp(220px,40dvh,520px);overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:12px;padding:16px 0;margin:12px 0;border-block:1px solid var(--line)}.dm-bubble{max-width:88%;align-self:flex-start;background:var(--soft);padding:10px 14px;border-radius:12px;overflow-wrap:anywhere;flex-shrink:0}.dm-bubble.mine{align-self:flex-end;background:var(--accent);color:#20382f}.dm-bubble p{white-space:pre-wrap;margin:0 0 5px}.dm-bubble small{font-size:10px}.dm-bubble.mine small{color:#50613e}#dmInput{width:100%;resize:vertical;min-height:72px;background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit}.dm-security{margin:14px 0}#dmError:empty{display:none}@media(max-width:760px){header nav{grid-template-columns:repeat(6,minmax(0,1fr))}.dm-layout{grid-template-columns:minmax(0,1fr)}.dm-panel{padding:16px}.dm-contacts{display:flex;overflow-x:auto;scroll-snap-type:x proximity}.dm-contact{flex-shrink:0;max-width:240px;min-height:44px;scroll-snap-align:start}#dmConversation{scroll-margin-top:12px}#dmThread{height:40dvh;min-height:240px}#dmCompose{position:sticky;bottom:0;z-index:2;background:var(--card);padding:8px 0 max(8px,env(safe-area-inset-bottom))}#dmSend{min-width:88px;min-height:44px}.dm-bubble{max-width:94%}}
+
+
+.auth-confirm{display:contents}
+.cube-account-avatar{display:grid;place-items:center;width:100%;height:100%}
+.cube-account-avatar .avatar-image{width:27px;height:27px;object-fit:contain}
+.cube-profile-avatar{overflow:hidden}
+.cube-profile-avatar .avatar-image{width:100%;height:100%;object-fit:contain;padding:3px}
+
+/* High-order puzzles keep the entire timer workspace inside the viewport.
+   The algorithm font is fitted by app.js, so the page itself never scrolls. */
+#timerPage{overflow:hidden}
+.workspace.wide-scramble{flex:1 1 auto;min-height:0;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(145px,.62fr);align-content:stretch;gap:8px}
+.wide-scramble .main-column{display:contents}
+.wide-scramble .scramble-card{grid-column:1;grid-row:1;min-height:0;height:100%;max-height:none;overflow:hidden;padding:10px 16px;display:flex;flex-direction:column}
+.wide-scramble .scramble-card>.card-top,.wide-scramble .scramble-foot{flex:0 0 auto}
+.wide-scramble #scramble{flex:1 1 auto;min-height:0;height:auto;max-height:none;margin:5px 0;overflow:hidden;white-space:pre-wrap;overflow-wrap:normal;word-break:normal;line-height:1.35;letter-spacing:0}
+.wide-scramble #scramble.scramble-tight{line-height:1.22}
+.wide-scramble .timer-card{grid-column:1;grid-row:2;min-height:0;margin:0;padding:7px 14px}
+.wide-scramble .timer-card #timerSurface{padding:2px 0}
+.wide-scramble .timer-card #timerValue{font-size:clamp(38px,8vh,76px)}
+.wide-scramble .timer-card #timerHint{margin:2px 0}
+.wide-scramble .stat-grid,.wide-scramble .progress-card,.wide-scramble aside{display:none}
+
+.markdown-help{margin:0 0 4px;line-height:1.55}.markdown-body{line-height:1.65;overflow-wrap:anywhere}.markdown-body>:first-child{margin-top:0}.markdown-body>:last-child{margin-bottom:0}.markdown-body p{white-space:normal;margin:.45em 0}.markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4,.markdown-body h5,.markdown-body h6{font:inherit;font-weight:750;line-height:1.3;margin:.8em 0 .35em}.markdown-body h1{font-size:1.35em}.markdown-body h2{font-size:1.22em}.markdown-body h3{font-size:1.1em}.markdown-body ul,.markdown-body ol{margin:.45em 0;padding-left:1.5em}.markdown-body li+li{margin-top:.18em}.markdown-body blockquote{margin:.55em 0;padding:.1em 0 .1em .85em;border-left:3px solid var(--green);color:var(--muted)}.markdown-body code{font:0.88em/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;background:color-mix(in srgb,var(--ink) 8%,transparent);border-radius:5px;padding:.12em .35em}.markdown-body pre{max-width:100%;overflow:auto;margin:.6em 0;padding:.75em;background:color-mix(in srgb,var(--ink) 8%,transparent);border-radius:8px}.markdown-body pre code{padding:0;background:none;white-space:pre}.markdown-body a{color:var(--green);text-decoration:underline;text-underline-offset:2px}.dm-bubble.mine .markdown-body a{color:#234e3d}.markdown-body hr{border:0;border-top:1px solid var(--line);margin:.75em 0}.forum-post-body{margin-top:14px}.dm-bubble>.markdown-body{margin-bottom:5px}
+.dm-layout details{display:none}
+.dm-contact{display:grid;gap:2px}.dm-contact-name,.dm-contact-preview{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dm-contact-name{font-size:12px}.dm-contact-preview{font-size:10px;font-weight:400;color:var(--muted)}.dm-contact.selected .dm-contact-preview{color:#50613e}
+
+/* Keep the avatar compact in narrow multilingual headers. */
+@media(max-width:760px){header .account-label{display:none}header .account-button{width:36px;height:32px;padding:3px;justify-content:center}.header-right{flex-shrink:0}}

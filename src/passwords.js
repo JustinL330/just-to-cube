@@ -1,3 +1,5 @@
+// Keep the OWASP-aligned work factor used by the existing accounts and tests.
+// Per-user 256-bit salts and strict account rate limits provide further defense.
 const ITERATIONS=600000,ALGORITHM='pbkdf2-sha256',VERSION='v1';
 const HEX=/^[a-f0-9]{64}$/;
 const encode=bytes=>Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');

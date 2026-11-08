@@ -67,7 +67,7 @@ jobs:
             ['desktop', { width: 1366, height: 850 }, false],
             ['mobile', { width: 390, height: 844 }, true],
           ];
-          const tabs = ['Timer', 'Explore', 'Sessions', 'AI coach', 'Forum', 'Messages'];
+          const tabs = ['SQ‑1 shapes', 'Cubing coach', 'Forum', 'Messages'];
           const lines = ['# Browser checks (Playwright)', ''];
 
           try {
@@ -90,7 +90,7 @@ jobs:
               const started = Date.now();
               await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 });
               lines.push(`## ${name}`, `- load time until network idle: ${Date.now() - started} ms`);
-              await page.screenshot({ path: `${out}/${name}-timer.png`, fullPage: true });
+              await page.screenshot({ path: `${out}/${name}-sq1.png`, fullPage: true });
 
               const overflow = await page.evaluate(
                 () => document.documentElement.scrollWidth > window.innerWidth + 1
@@ -173,8 +173,9 @@ jobs:
             --allowedTools "Read,Edit,Write,Glob,Grep,Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(ls:*),Bash(cat:*),Bash(npm:*),Bash(npx:*),Bash(node:*)"
           prompt: |
             You maintain the website at ${{ env.SITE_URL }}: a multilingual cubing
-            practice site (timer, scrambles, session statistics, WCA search, AI
-            coach, forum, messages). Its source code is this repository, checked
+            practice site (SQ1 shape trainer with optimal routes, AI coach, forum,
+            messages). Timer, Explore and Sessions were intentionally retired.
+            Do not restore these retired features. Its source is this repository, checked
             out in the current directory.
 
             An automated inspection of the LIVE site just ran. Its output is in

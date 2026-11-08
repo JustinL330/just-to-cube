@@ -27,7 +27,7 @@ test('real Worker and SQLite account lifecycle, ownership, revisions and authent
  r=await call('/api/account/me','GET',undefined,cookieA);assert.equal((await r.json()).user.name,'Test Cuber');
  r=await call('/api/account/me','GET',undefined,cookieB);assert.equal((await r.json()).user.name,'cuber_b');
  r=await call('/api/account/login','POST',{name:'cuber_a',password});assert.equal((await r.json()).user.bio,'Practising F2L');
- const data={version:1,settings:{language:'en',dark:false,inspection:false,phaseTiming:true,phaseNames:['Cross','Finish'],secondAverageMode:'daily',statisticsTimeZone:'Asia/Hong_Kong'},sessions:[{id:'s1',name:'3x3',event:'333',solves:[{id:'solve1',ms:12345,penalty:'OK',date:new Date().toISOString(),scramble:'R U',phases:[{name:'Cross',ms:2345},{name:'Finish',ms:10000}]}]}]};
+ const data={version:1,settings:{language:'en',dark:false,sq1:{showNames:true,showCodes:false,selectedCases:['kite:square']},inspection:false,phaseTiming:true,phaseNames:['Cross','Finish'],secondAverageMode:'daily',statisticsTimeZone:'Asia/Hong_Kong'},sessions:[{id:'s1',name:'3x3',event:'333',solves:[{id:'solve1',ms:12345,penalty:'OK',date:new Date().toISOString(),scramble:'R U',phases:[{name:'Cross',ms:2345},{name:'Finish',ms:10000}]}]}]};
  r=await call('/api/account/data','PUT',{data,revision:0},cookieA);assert.equal((await r.json()).revision,1);
  assert.equal((await call('/api/account/data','PUT',{data,revision:0},cookieA)).status,409);
  r=await call('/api/account/data','GET',undefined,cookieB);assert.equal((await r.json()).data,null);
@@ -55,4 +55,10 @@ test('real Worker and SQLite account lifecycle, ownership, revisions and authent
  assert.equal((await call('/api/account/logout','POST',{},newCookie)).status,200);
  assert.equal((await (await call('/api/account/me','GET',undefined,newCookie)).json()).user,null);
  }finally{await mf.dispose()}
+});
+
+test('merging practice retains explicitly chosen local SQ1 preferences and legacy sessions',()=>{
+ const remote={version:1,sessions:[{id:'s',solves:[]}],settings:{language:'ja',sq1:{showNames:false}}};
+ const local={version:1,sessions:[],settings:{sq1:{showNames:true,showCodes:false,selectedCases:['kite:square']}}};
+ const merged=mergePractice(remote,local);assert.deepEqual(merged.settings.sq1,local.settings.sq1);assert.equal(merged.settings.language,'ja');assert.deepEqual(merged.sessions,remote.sessions);assert.equal(remote.settings.sq1.showNames,false);
 });

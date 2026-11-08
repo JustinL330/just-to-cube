@@ -4,8 +4,11 @@ test('averages drop best and worst with correct DNF handling',()=>{assert.equal(
 test('time parsing and formatting',()=>{assert.equal(parseTime('1:02.34'),62340);assert.equal(format(62349),'1:02.349');assert.equal(parseTime('1:99'),null);assert.equal(parseTime('-1'),null);assert.equal(parseTime('0'),null);assert.equal(parseTime('12.345'),12345);assert.equal(format(Infinity),'DNF')});
 test('all seven dictionaries have complete translations',()=>{assert.equal(Object.keys(dict).length,7);for(const d of Object.values(dict))assert.deepEqual(Object.keys(d),Object.keys(dict.en));for(const d of Object.values(dict))assert.ok(Object.values(d).every(v=>typeof v==='string'&&v.length))});
 test('imports validate schema and reject invalid times',()=>{const d={version:1,sessions:[{id:'a',name:'test',event:'333',solves:[{id:'x',ms:12000,penalty:'OK',scramble:'R U',date:'2026-10-21T00:00:00Z'}]}]};assert.equal(validBackup(d),true);d.sessions[0].solves[0].ms=-2;assert.equal(validBackup(d),false)});
-test('worker rejects arbitrary proxy targets and methods',async()=>{assert.equal((await worker.fetch(new Request('https://app/api/people?q=x'),{},{})).status,400);assert.equal((await worker.fetch(new Request('https://app/api/anything?q=test'),{},{})).status,404);assert.equal((await worker.fetch(new Request('https://app/api/people?q=test',{method:'POST'}),{},{})).status,405)});
-test('worker normalizes people response and reports outages',async()=>{const original=globalThis.fetch;try{globalThis.fetch=async()=>Response.json({total:1,rows:[{name:'Test Cuber',wca_id:'2020TEST01',country:'CN'}]});const r=await worker.fetch(new Request('https://app/api/people?q=test'),{},{waitUntil(){}});assert.equal(r.status,200);assert.equal((await r.json()).results[0].id,'2020TEST01');globalThis.fetch=async()=>{throw Error('offline')};assert.equal((await worker.fetch(new Request('https://app/api/people?q=test'),{},{})).status,502)}finally{globalThis.fetch=original}});
+test('removed Explore and unknown API routes return 404',async()=>{
+ for(const path of ['/api/people?q=test','/api/competitions?q=test','/api/person/2020TEST01','/api/anything']){
+  for(const method of ['GET','POST'])assert.equal((await worker.fetch(new Request('https://app'+path,{method}),{},{})).status,404);
+ }
+});
 
 test('WCA fewest-moves averages and multi-blind records decode correctly',()=>{assert.equal(formatWca(24,'333fm'),'24');assert.equal(formatWca(2733,'333fm',true),'27.33');assert.equal(formatWca(880282100,'333mbf'),'11/11 · 47:01');assert.equal(formatWca(580331501,'333mbf'),'42/43 · 55:15');assert.equal(formatWca(553,'333'),'5.53');assert.equal(formatWca(-1,'333'),'DNF');assert.equal(formatWca(0,'333'),'—')});
 

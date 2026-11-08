@@ -19,6 +19,21 @@ export async function createVault(passphrase, userId) {
   const ciphertext=b64(await crypto.subtle.encrypt({name:'AES-GCM',iv:unb64(iv),additionalData:enc.encode('jus-dm-vault-v1:'+userId)},key,enc.encode(JSON.stringify(privateJwk))));
   return {version:1,publicKey,salt,iv,ciphertext};
 }
+export async function createDeviceVault(userId) {
+  const pair=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
+  const publicKey=await crypto.subtle.exportKey('jwk',pair.publicKey),privateJwk=await crypto.subtle.exportKey('jwk',pair.privateKey);
+  const wrappingKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const salt=b64(random(16)),iv=b64(random(12));
+  const ciphertext=b64(await crypto.subtle.encrypt({name:'AES-GCM',iv:unb64(iv),additionalData:enc.encode('jus-dm-vault-v1:'+userId)},wrappingKey,enc.encode(JSON.stringify(privateJwk))));
+  return {vault:{version:1,publicKey,salt,iv,ciphertext},wrappingKey};
+}
+export async function unlockDeviceVault(vault, wrappingKey, userId) {
+  if(vault.version!==1||!(wrappingKey instanceof CryptoKey))throw Error('deviceNotLinked');
+  const raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(vault.iv),additionalData:enc.encode('jus-dm-vault-v1:'+userId)},wrappingKey,unb64(vault.ciphertext));
+  const jwk=JSON.parse(dec.decode(raw));
+  if(publicKeyId(jwk)!==publicKeyId(vault.publicKey))throw Error('unlockFailed');
+  return crypto.subtle.importKey('jwk',jwk,{name:'ECDH',namedCurve:'P-256'},false,['deriveBits']);
+}
 export async function unlockVault(vault, passphrase, userId) {
   if(vault.version!==1)throw Error('unlockFailed');
   const key=await vaultKey(passphrase,vault.salt);
