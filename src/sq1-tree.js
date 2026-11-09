@@ -24,7 +24,7 @@ export function initSQ1Tree({root,trigger,request,t,shapeName,diagram,copy,getCu
  <div class="sq1-tree-step-top"><h3 data-sq="steps"></h3><div class="sq1-step-controls"><button id="sq1TreeStepBack" class="secondary" type="button">←</button><span id="sq1TreeFramePosition"></span><button id="sq1TreeStepNext" class="secondary" type="button">→</button></div></div><p id="sq1TreeFrameHelp" class="sq1-step-help"></p><div id="sq1TreeFrames" class="sq1-steps sq1-tree-frames"></div></div></div>`;
  const $=selector=>root.querySelector(selector),topSearch=$('#sq1TreeTopSearch'),bottomSearch=$('#sq1TreeBottomSearch'),viewport=$('#sq1TreeViewport'),size=$('#sq1TreeSize'),canvas=$('#sq1TreeCanvas');
  let data=null,selectedId=null,selectedState=null,selectedSwapped=false,source='canonical',analysis=null,groups=[],groupIndex=0,variantIndex=0,frameIndex=0;
- let loadEpoch=0,selectionEpoch=0,loading=false,solving=false,failed=false,layout=null,zoom=1,fitMode=true,userClosed=root.hidden,lastCurrentSignature=null;
+ let loadEpoch=0,selectionEpoch=0,loading=false,solving=false,failed=false,layout=null,zoom=1,fitMode=true,readableFit=true,userClosed=root.hidden,lastCurrentSignature=null;
  let nodeElements=new Map(),edgeElements=new Map(),matches=new Map();
  const hasQuery=()=>!!(topSearch.value.trim()||bottomSearch.value.trim());
  const selectedCase=()=>data?.nodes.find(c=>c.id===selectedId);
@@ -73,8 +73,8 @@ export function initSQ1Tree({root,trigger,request,t,shapeName,diagram,copy,getCu
  function fitScale(){
   const maxHeight=parseFloat(getComputedStyle(viewport).maxHeight)||window.innerHeight*.7;
   const fit=Math.min(1,(viewport.clientWidth-4)/layout.width,(maxHeight-4)/layout.height);
-  // Focused branches remain finger-sized, with scrolling instead of tiny nodes.
-  return Math.max($('#sq1TreeOnlyRoutes').checked&&selectedId?.length ? .7 : .08,fit);
+  // New selections stay readable; explicit Fit shows every depth at once.
+  return Math.max(readableFit&&$('#sq1TreeOnlyRoutes').checked&&selectedId ? .7 : .04,fit);
  }
  function setZoom(value,fit=false){
   if(!layout)return;
@@ -150,7 +150,7 @@ export function initSQ1Tree({root,trigger,request,t,shapeName,diagram,copy,getCu
   if(!data?.nodes.some(c=>c.id===id))return;
   const nextSource=poseSource||(state?'current':'canonical'),pose=state?JSON.stringify(state):null;
   if(id===selectedId&&analysis&&!force&&source===nextSource&&(state?pose===JSON.stringify(selectedState):selectedSwapped===swapped))return;
-  const token=++selectionEpoch;selectedId=id;selectedSwapped=swapped;selectedState=state?structuredClone(state):null;source=nextSource;analysis=null;groups=[];groupIndex=variantIndex=frameIndex=0;solving=true;failed=false;fitMode=true;
+  const token=++selectionEpoch;selectedId=id;selectedSwapped=swapped;selectedState=state?structuredClone(state):null;source=nextSource;analysis=null;groups=[];groupIndex=variantIndex=frameIndex=0;solving=true;failed=false;fitMode=true;readableFit=true;
   $('#sq1TreeOnlyRoutes').checked=true;$('#sq1TreeAllPaths').checked=true;
   renderSearch();renderDetails();renderRoutes();renderStatus();drawTree();
   try{
@@ -186,14 +186,14 @@ export function initSQ1Tree({root,trigger,request,t,shapeName,diagram,copy,getCu
  function close(){root.hidden=true;userClosed=true;trigger.setAttribute('aria-expanded','false');trigger.focus();}
  trigger.onclick=()=>root.hidden?open(true):root.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
  $('#sq1TreeClose').onclick=close;$('#sq1TreeClear').onclick=clear;$('#sq1TreeCurrent').onclick=()=>{const current=getCurrentCase();if(current?.state)selectCase(current.caseId,{state:current.state});};
- $('#sq1TreeOverview').onclick=()=>{$('#sq1TreeOnlyRoutes').checked=false;fitMode=true;drawTree();};
+ $('#sq1TreeOverview').onclick=()=>{$('#sq1TreeOnlyRoutes').checked=false;fitMode=true;readableFit=false;drawTree();};
  $('#sq1TreeRetry').onclick=()=>data&&selectedId?selectCase(selectedId,{force:true,state:selectedState,poseSource:source,swapped:selectedSwapped}):open();
  topSearch.oninput=bottomSearch.oninput=()=>{renderSearch();renderDetails();};
- $('#sq1TreeOnlyRoutes').onchange=()=>{fitMode=true;drawTree();};$('#sq1TreeAllPaths').onchange=()=>{renderRoutes();fitMode=true;drawTree();};
+ $('#sq1TreeOnlyRoutes').onchange=()=>{fitMode=true;readableFit=$('#sq1TreeOnlyRoutes').checked;drawTree();};$('#sq1TreeAllPaths').onchange=()=>{renderRoutes();fitMode=true;drawTree();};
  $('#sq1TreeRoutes').onchange=e=>{groupIndex=Number(e.target.value);variantIndex=frameIndex=0;$('#sq1TreeAllPaths').checked=false;renderRoutes();drawTree();};$('#sq1TreeVariants').onchange=e=>{variantIndex=Number(e.target.value);frameIndex=0;renderRoutes();renderDetails();paintGraph();};
  $('#sq1TreeCopy').onclick=()=>{const route=chosenRoute();if(route)copy(route.alg);};
  $('#sq1TreeStepBack').onclick=()=>selectFrame(frameIndex-1);$('#sq1TreeStepNext').onclick=()=>selectFrame(frameIndex+1);
- $('#sq1TreeFit').onclick=()=>layout&&setZoom(fitScale(),true);$('#sq1TreeZoomIn').onclick=()=>setZoom(zoom*1.5);$('#sq1TreeZoomOut').onclick=()=>setZoom(zoom/1.5);
+ $('#sq1TreeFit').onclick=()=>{if(layout){readableFit=false;setZoom(fitScale(),true)}};$('#sq1TreeZoomIn').onclick=()=>setZoom(zoom*1.5);$('#sq1TreeZoomOut').onclick=()=>setZoom(zoom/1.5);
  new ResizeObserver(()=>{if(layout&&fitMode&&!root.hidden)setZoom(fitScale(),true);}).observe(viewport);
  update();if(!root.hidden)open();
  return {update,currentChanged,open:()=>open(true),reset(){loadEpoch++;selectionEpoch++;loading=solving=false;topSearch.value=bottomSearch.value='';lastCurrentSignature=null;userClosed=false;root.hidden=false;trigger.setAttribute('aria-expanded','true');clear();if(!data)open();}};
