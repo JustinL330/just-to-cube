@@ -143,6 +143,20 @@ export function cases(){
   for(const node of nodes.values())if(node.top<=node.bottom)out.push({id:[node.top,node.bottom].join(':'),top:node.top,bottom:node.bottom,minSlices:distances.get(node.key)});
   return out.sort((a,b)=>a.minSlices-b.minSlices||a.id.localeCompare(b.id));
 }
+export function shapeTree(){
+  const {nodes,distances}=graph(),counts=new Map(),edges=new Map();
+  const caseId=node=>[node.top,node.bottom].sort().join(':');
+  for(const node of [...nodes.values()].sort((a,b)=>distances.get(a.key)-distances.get(b.key))){
+    const next=node.next.filter(key=>distances.get(key)===distances.get(node.key)-1);
+    counts.set(node.key,distances.get(node.key)===0?1:next.reduce((sum,key)=>sum+counts.get(key),0));
+    for(const key of next){const from=caseId(node),to=caseId(nodes.get(key));edges.set(`${from}>${to}`,{from,to});}
+  }
+  return {nodes:cases().map(c=>({...c,routeCount:counts.get(`${byId.get(c.top).code}|${byId.get(c.bottom).code}`)})),edges:[...edges.values()]};
+}
+export function analyzeCase(caseId){
+  const target=cases().find(c=>c.id===caseId);if(!target)throw Error('invalid_case');
+  return analyze(shapeState(byId.get(target.top).code,byId.get(target.bottom).code));
+}
 function framesFor(state,moves){
   let current=cloneState(state);const frames=[{state:current,move:'',kind:'initial'}];
   for(const m of moves){current=execute(current,m);frames.push({state:current,move:formatAlg([m]),kind:m.kind,...(m.kind==='rotation'?{a:m.a,b:m.b}:{})});}

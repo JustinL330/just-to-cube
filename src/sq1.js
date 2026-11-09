@@ -1,5 +1,7 @@
 import {SHAPES,PIECES,layerPieces,layerCode,identifyLayers,parseAlg,formatAlg} from './sq1-engine.js';
 import {sq1Text} from './sq1-i18n.js';
+import {matchCaseLayers} from './sq1-search.js';
+import {initSQ1Tree} from './sq1-tree.js';
 
 const NS='http://www.w3.org/2000/svg';
 const node=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
@@ -46,24 +48,25 @@ export function initSQ1({language,settings,save,toast=()=>{}}){
  const t=(key,params)=>sq1Text(language(),key,params);
  const shapeName=id=>{const s=SHAPE_MAP.get(id);if(!s)return id;const zh=language()==='zh_hk'?s.zh.replaceAll('风','風').replaceAll('筝','箏').replaceAll('贝','貝').replaceAll('双','雙').replaceAll('邻','鄰'):s.zh;return `${zh} / ${s.en}`;};
  root.innerHTML=`
- <div class="page-heading sq1-heading"><div><p class="eyebrow" data-sq="eyebrow"></p><h1 data-sq="title"></h1><p class="muted sq1-intro" data-sq="intro"></p></div><a class="sq1-cases-jump secondary" href="#sq1CaseSection" data-sq="showCases"></a></div>
+ <div class="page-heading sq1-heading"><div><p class="eyebrow" data-sq="eyebrow"></p><h1 data-sq="title"></h1><p class="muted sq1-intro" data-sq="intro"></p></div><div class="sq1-heading-actions"><button type="button" id="sq1OpenTree" class="secondary" aria-controls="sq1TreeSection" aria-expanded="false" data-sq="treeShow"></button><a class="sq1-cases-jump secondary" href="#sq1CaseSection" data-sq="showCases"></a></div></div>
  <div class="sq1-layout"><section class="sq1-practice card" aria-labelledby="sq1PracticeTitle"><div class="sq1-section-top"><h2 id="sq1PracticeTitle" data-sq="train"></h2><span class="sq1-badge" id="sq1CurrentDepth"></span></div>
  <div id="sq1Status" class="sq1-status" role="status" aria-live="polite"></div><div id="sq1CurrentDiagram" class="sq1-current-diagram"></div>
  <div id="sq1ScrambleArea"><p class="sq1-caption" data-sq="scramble"></p><p class="sq1-scramble-key"><span class="sq1-colour-phase" data-sq="colourPhase"></span><span aria-hidden="true"> → </span><span class="sq1-shape-phase" data-sq="shapePhase"></span></p><p id="sq1ScrambleText" class="sq1-scramble"></p><p class="sq1-star-help muted" data-sq="starHint"></p></div>
  <div class="sq1-actions"><button type="button" class="primary" id="sq1New" data-sq="newScramble"></button><button type="button" class="secondary" id="sq1Repeat" data-sq="repeat"></button><button type="button" class="secondary" id="sq1Copy" data-sq="copy"></button><button type="button" class="secondary" id="sq1Deselect" data-sq="deselectCurrent" aria-describedby="sq1SelectedCount"></button></div>
  <button type="button" class="sq1-reveal" id="sq1Reveal" data-sq="reveal"></button><p class="sq1-goal muted" data-sq="goalHint"></p>
  </section><aside class="sq1-labels card"><p class="eyebrow">01 / 02</p><h2 data-sq="display"></h2><label class="sq1-toggle"><span data-sq="names"></span><input type="checkbox" id="sq1Names"></label><label class="sq1-toggle"><span data-sq="codes"></span><input type="checkbox" id="sq1Codes"></label><p class="muted sq1-legend" data-sq="legend"></p><div class="sq1-notation"><code>(a,b) /</code><p data-sq="turnHint"></p></div></aside></div>
+ <section id="sq1TreeSection" class="sq1-tree-section card" aria-labelledby="sq1TreeTitle"></section>
  <section id="sq1SolutionSection" class="sq1-solutions card" hidden aria-labelledby="sq1SolutionsTitle"><div class="sq1-section-top"><div><p class="eyebrow">SOLUTION</p><h2 id="sq1SolutionsTitle" data-sq="solutions"></h2></div><span id="sq1SolutionCount" class="sq1-badge"></span></div><p class="muted sq1-route-note" data-sq="routeHint"></p>
  <div class="sq1-solution-nav"><button type="button" class="secondary" id="sq1Prev">← <span data-sq="previous"></span></button><label class="sq1-solution-picker"><span class="sr-only" data-sq="chooseSolution"></span><select id="sq1SolutionSelect"></select></label><button type="button" class="secondary" id="sq1Next"><span data-sq="next"></span> →</button></div>
  <div class="sq1-formula-top"><h3 data-sq="formula"></h3><button type="button" id="sq1CopySolution" class="text-button" data-sq="copySolution"></button></div><div id="sq1Formula" class="sq1-formula"></div><p id="sq1StepHelp" class="sq1-step-help"></p>
  <h3 data-sq="steps"></h3><div class="sq1-step-controls"><button id="sq1StepBack" class="secondary" type="button">←</button><span id="sq1FramePosition"></span><button id="sq1StepNext" class="secondary" type="button">→</button></div><div id="sq1Steps" class="sq1-steps"></div></section>
  <section id="sq1CaseSection" class="sq1-case-section card" aria-labelledby="sq1CaseTitle"><div class="sq1-section-top"><div><p class="eyebrow">CASE LIBRARY</p><h2 id="sq1CaseTitle" data-sq="cases"></h2></div><span id="sq1SelectedCount" class="sq1-badge" role="status"></span></div><p class="muted sq1-case-hint" data-sq="casesHint"></p>
- <div class="sq1-filters"><label class="sq1-search-label"><span class="sr-only" data-sq="search"></span><input id="sq1CaseSearch" type="search" autocomplete="off" spellcheck="false"></label><label><span data-sq="filterShape"></span><select id="sq1ShapeFilter"></select></label><label><span data-sq="depth"></span><select id="sq1DepthFilter"></select></label></div>
+ <div class="sq1-filters"><label class="sq1-search-label"><span data-sq="top"></span><input id="sq1TopSearch" type="search" autocomplete="off" spellcheck="false" aria-describedby="sq1SearchHint"></label><label class="sq1-search-label"><span data-sq="bottom"></span><input id="sq1BottomSearch" type="search" autocomplete="off" spellcheck="false" aria-describedby="sq1SearchHint"></label><label><span data-sq="filterShape"></span><select id="sq1ShapeFilter"></select></label><label><span data-sq="depth"></span><select id="sq1DepthFilter"></select></label></div><p id="sq1SearchHint" class="muted sq1-search-hint" data-sq="searchHint"></p>
  <div class="sq1-case-actions"><button type="button" id="sq1All" class="secondary" data-sq="all"></button><button type="button" id="sq1None" class="secondary" data-sq="none"></button><button type="button" id="sq1SelectVisible" class="text-button" data-sq="selectVisible"></button><button type="button" id="sq1ClearVisible" class="text-button" data-sq="clearVisible"></button></div><div id="sq1Cases" class="sq1-case-grid"></div></section>`;
- const $=s=>root.querySelector(s),shapeFilter=$('#sq1ShapeFilter'),depthFilter=$('#sq1DepthFilter');
+ const $=s=>root.querySelector(s),shapeFilter=$('#sq1ShapeFilter'),depthFilter=$('#sq1DepthFilter'),topSearch=$('#sq1TopSearch'),bottomSearch=$('#sq1BottomSearch');
  root.querySelector('.sq1-cases-jump').onclick=e=>{e.preventDefault();$('#sq1CaseSection').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});};
  let worker=null,requestId=0,pending=new Map(),catalog=[],generation=0,current=null,analysis=null,routeIndex=0,frameIndex=0,revealed=false,busy=false,statusKey='loading',failure=false,prefs={showNames:true,showCodes:true,selectedCases:[]},loaded=false;
- let activeOperation='generate',requestedCaseId=null;
+ let activeOperation='generate',requestedCaseId=null,tree=null;
  function readPreferences(){const p=settings()||{};prefs={showNames:p.showNames!==false,showCodes:p.showCodes!==false,selectedCases:Array.isArray(p.selectedCases)?p.selectedCases.filter(id=>catalog.some(c=>c.id===id)):catalog.map(c=>c.id)};}
  function persist(){save({...prefs,selectedCases:[...prefs.selectedCases]});}
  function stopWorker(error){worker?.terminate();worker=null;for(const p of pending.values()){clearTimeout(p.timer);p.reject(error);}pending.clear();}
@@ -83,24 +86,28 @@ export function initSQ1({language,settings,save,toast=()=>{}}){
    pair.append(figure);
   }return pair;
  }
- function matchingCases(){const query=$('#sq1CaseSearch').value.trim().toLowerCase(),shape=shapeFilter.value,depth=depthFilter.value;return catalog.filter(c=>{
-  const shapes=[SHAPE_MAP.get(c.top),SHAPE_MAP.get(c.bottom)],haystack=shapes.map(s=>[s?.en,s?.zh,s?.code,s?.id,s&&shapeName(s.id)].join(' ')).join(' ').toLowerCase();
-  return(!query||haystack.includes(query))&&(!shape||c.top===shape||c.bottom===shape)&&(depth===''||c.minSlices===Number(depth));
+ function matchingCases(){const shape=shapeFilter.value,depth=depthFilter.value;return catalog.flatMap(c=>{
+  if((shape&&c.top!==shape&&c.bottom!==shape)||(depth!==''&&c.minSlices!==Number(depth)))return [];
+  const orientation=matchCaseLayers(c,topSearch.value,bottomSearch.value);
+  return orientation?[{...c,orientation}]:[];
  });}
  function renderCases(){
   $('#sq1SelectedCount').textContent=t('selected',{n:prefs.selectedCases.length});const grid=$('#sq1Cases'),selected=new Set(prefs.selectedCases);grid.replaceChildren();
   const matches=matchingCases();if(!matches.length){grid.append(node('p',t('noMatches'),'sq1-no-cases muted'));return;}
   for(const c of matches){
-   const card=node('label',undefined,'sq1-case'+(selected.has(c.id)?' selected':'')),checkbox=node('input');checkbox.type='checkbox';checkbox.value=c.id;checkbox.checked=selected.has(c.id);checkbox.setAttribute('aria-label',`${shapeName(c.top)} + ${shapeName(c.bottom)} · ${t('slices',{n:c.minSlices})}`);
+   const [topId,bottomId]=c.orientation==='swapped'?[c.bottom,c.top]:[c.top,c.bottom];
+   const card=node('label',undefined,'sq1-case'+(selected.has(c.id)?' selected':'')),checkbox=node('input');checkbox.type='checkbox';checkbox.value=c.id;checkbox.checked=selected.has(c.id);checkbox.setAttribute('aria-label',`${shapeName(topId)} + ${shapeName(bottomId)} · ${t('slices',{n:c.minSlices})}${c.orientation==='swapped'?' · '+t('swappedMatch'):''}`);
    const tick=node('span',checkbox.checked?'✓':'','sq1-case-tick');tick.setAttribute('aria-hidden','true');
    card.append(checkbox,tick,node('span',t('slices',{n:c.minSlices}),'sq1-case-depth'));
-   const top=SHAPE_MAP.get(c.top),bottom=SHAPE_MAP.get(c.bottom);card.append(pairDiagram(pairFromCodes(top.code,bottom.code),{mini:true,plain:true}));
+   const top=SHAPE_MAP.get(topId),bottom=SHAPE_MAP.get(bottomId);card.append(pairDiagram(pairFromCodes(top.code,bottom.code),{mini:true,plain:true}));
+   if(c.orientation==='swapped')card.append(node('span',t('swappedMatch'),'sq1-case-match'));
    // A text alternative remains even when diagram labels are hidden.
-   const alt=node('span',`${shapeName(c.top)} + ${shapeName(c.bottom)}`,'sr-only');card.append(alt);
+   const alt=node('span',`${shapeName(topId)} + ${shapeName(bottomId)}`,'sr-only');card.append(alt);
    checkbox.onchange=()=>{if(checkbox.checked)prefs.selectedCases=[...new Set([...prefs.selectedCases,c.id])];else prefs.selectedCases=prefs.selectedCases.filter(id=>id!==c.id);persist();card.classList.toggle('selected',checkbox.checked);tick.textContent=checkbox.checked?'✓':'';$('#sq1SelectedCount').textContent=t('selected',{n:prefs.selectedCases.length});renderControls();};grid.append(card);
   }
  }
  function renderControls(){
+  tree?.currentChanged();
   $('#sq1Names').checked=prefs.showNames;$('#sq1Codes').checked=prefs.showCodes;
   for(const id of ['sq1Names','sq1Codes','sq1All','sq1None','sq1SelectVisible','sq1ClearVisible'])$('#'+id).disabled=!loaded;
   $('#sq1New').disabled=busy||!loaded||!prefs.selectedCases.length;$('#sq1Repeat').disabled=busy||!current;$('#sq1Copy').disabled=busy||!current;$('#sq1Reveal').disabled=busy||!current;
@@ -154,10 +161,10 @@ export function initSQ1({language,settings,save,toast=()=>{}}){
   route.frames.forEach((frame,i)=>{if(frame.kind==='slice')slices++;const card=node('article',undefined,'sq1-step');card.tabIndex=0;card.setAttribute('role','button');card.setAttribute('aria-label',t('practiceStep',{n:i,label:label(frame.kind)}));const heading=node('div',undefined,'sq1-step-heading');heading.append(node('span',String(i).padStart(2,'0'),'sq1-step-index'),node('strong',label(frame.kind)));card.append(heading,pairDiagram(frame.state),node('code',frame.move||'—','sq1-step-move'),node('p',i===route.frames.length-1?t('finished'):t('sliceProgress',{n:slices,total:analysis.minSlices}),'sq1-step-progress'));card.onclick=()=>selectFrame(i,false);card.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectFrame(i,false);}};steps.append(card);});selectFrame(frameIndex,false);
  }
  function update(){
-  root.querySelectorAll('[data-sq]').forEach(e=>e.textContent=t(e.dataset.sq));$('#sq1CaseSearch').placeholder=t('search');$('#sq1CaseSearch').setAttribute('aria-label',t('search'));
+  root.querySelectorAll('[data-sq]').forEach(e=>e.textContent=t(e.dataset.sq));for(const [input,side]of [[topSearch,'top'],[bottomSearch,'bottom']]){input.placeholder=t('search');input.setAttribute('aria-label',`${t(side)}: ${t('search')}`);}
   const shapeValue=shapeFilter.value,depthValue=depthFilter.value;shapeFilter.replaceChildren();const allShapes=node('option',t('allShapes'));allShapes.value='';shapeFilter.append(allShapes);for(const shape of SHAPES){const option=node('option',shapeName(shape.id));option.value=shape.id;shapeFilter.append(option);}shapeFilter.value=shapeValue;
   depthFilter.replaceChildren();const allDepth=node('option',t('anyDepth'));allDepth.value='';depthFilter.append(allDepth);for(let i=0;i<=7;i++){const o=node('option',t('slices',{n:i}));o.value=i;depthFilter.append(o);}depthFilter.value=depthValue;
-  $('#sq1StepBack').setAttribute('aria-label',t('previous')+' · '+t('steps'));$('#sq1StepNext').setAttribute('aria-label',t('next')+' · '+t('steps'));renderCases();renderPractice();
+  $('#sq1StepBack').setAttribute('aria-label',t('previous')+' · '+t('steps'));$('#sq1StepNext').setAttribute('aria-label',t('next')+' · '+t('steps'));renderCases();renderPractice();tree?.update();
  }
  function rand(n){const a=new Uint32Array(1),limit=2**32-(2**32%n);do{crypto.getRandomValues(a);}while(a[0]>=limit);return a[0]%n;}
  async function generate(repeat=false,overrideCaseId=null){
@@ -182,15 +189,16 @@ export function initSQ1({language,settings,save,toast=()=>{}}){
   prefs.selectedCases=prefs.selectedCases.includes(current.caseId)?prefs.selectedCases.filter(id=>id!==current.caseId):[...prefs.selectedCases,current.caseId];
   persist();renderCases();renderControls();
  }
- $('#sq1Deselect').onclick=toggleCurrentSelection;
  $('#sq1New').onclick=()=>generate();$('#sq1Repeat').onclick=()=>generate(true);$('#sq1Copy').onclick=()=>current&&copy(current.scramble);$('#sq1Reveal').onclick=revealSolutions;
+ $('#sq1Deselect').onclick=toggleCurrentSelection;
  $('#sq1CopySolution').onclick=()=>analysis&&copy(analysis.routes[routeIndex].alg);
  $('#sq1Prev').onclick=()=>{if(analysis&&routeIndex>0){routeIndex--;frameIndex=0;renderSolution();}};$('#sq1Next').onclick=()=>{if(analysis&&routeIndex<analysis.routes.length-1){routeIndex++;frameIndex=0;renderSolution();}};$('#sq1SolutionSelect').onchange=e=>{routeIndex=Number(e.target.value);frameIndex=0;renderSolution();};
  $('#sq1StepBack').onclick=()=>selectFrame(frameIndex-1);$('#sq1StepNext').onclick=()=>selectFrame(frameIndex+1);
- $('#sq1Names').onchange=e=>{prefs.showNames=e.target.checked;persist();renderCases();renderPractice();};$('#sq1Codes').onchange=e=>{prefs.showCodes=e.target.checked;persist();renderCases();renderPractice();};
- $('#sq1All').onclick=()=>changeSelection('all');$('#sq1None').onclick=()=>changeSelection('none');$('#sq1SelectVisible').onclick=()=>changeSelection('add');$('#sq1ClearVisible').onclick=()=>changeSelection('remove');$('#sq1CaseSearch').oninput=renderCases;shapeFilter.onchange=depthFilter.onchange=renderCases;
+ $('#sq1Names').onchange=e=>{prefs.showNames=e.target.checked;persist();renderCases();renderPractice();tree?.update();};$('#sq1Codes').onchange=e=>{prefs.showCodes=e.target.checked;persist();renderCases();renderPractice();tree?.update();};
+ $('#sq1All').onclick=()=>changeSelection('all');$('#sq1None').onclick=()=>changeSelection('none');$('#sq1SelectVisible').onclick=()=>changeSelection('add');$('#sq1ClearVisible').onclick=()=>changeSelection('remove');topSearch.oninput=bottomSearch.oninput=renderCases;shapeFilter.onchange=depthFilter.onchange=renderCases;
  async function initialize(){const token=++generation;busy=true;failure=false;statusKey='loading';renderControls();try{const result=await request('catalog');if(token!==generation)return;catalog=result.cases;loaded=true;readPreferences();update();busy=false;if(prefs.selectedCases.length)generate();else renderPractice();}catch{if(token!==generation)return;failure=true;busy=false;renderControls();}}
- function reset(){generation++;stopWorker(Error('cancelled'));current=analysis=null;requestedCaseId=null;revealed=false;busy=false;failure=false;routeIndex=frameIndex=0;statusKey='ready';if(loaded){readPreferences();update();if(prefs.selectedCases.length)generate();}else initialize();}
+ function reset(){generation++;stopWorker(Error('cancelled'));current=analysis=null;requestedCaseId=null;revealed=false;busy=false;failure=false;routeIndex=frameIndex=0;statusKey='ready';tree?.reset();if(loaded){readPreferences();update();if(prefs.selectedCases.length)generate();}else initialize();}
+ tree=initSQ1Tree({root:$('#sq1TreeSection'),trigger:$('#sq1OpenTree'),request,t,shapeName,diagram:c=>pairDiagram(pairFromCodes(SHAPE_MAP.get(c.top).code,SHAPE_MAP.get(c.bottom).code),{mini:true,plain:true}),renderState:state=>pairDiagram(state),frameHelp,frameLabel:label,getDisplayPreferences:()=>prefs,copy,getCurrentCase:()=>current});
  update();initialize();
  return {update,reset,summary:()=>current?JSON.stringify({puzzle:'Square-1',case:identifyLayers(current.state).map(shapeName),minimumSlices:catalog.find(c=>c.id===current.caseId)?.minSlices,metric:'minimum slash count',goal:'cube shape only'},null,2):''};
 }

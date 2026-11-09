@@ -92,5 +92,9 @@ translate();setPage(location.hash.slice(1));
 if('serviceWorker'in navigator){
  let controlled=!!navigator.serviceWorker.controller;
  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(controlled)location.reload();controlled=true});
- navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'}).then(async r=>{await navigator.serviceWorker.ready;swReady=true;network();r.update().catch(()=>{})}).catch(()=>{$('#offlineState').textContent=t('offline')});
+ navigator.serviceWorker.register('/sw.js',{updateViaCache:'none'}).then(async r=>{
+  await navigator.serviceWorker.ready;swReady=true;network();
+  let lastCheck=0;const check=()=>{if(document.visibilityState==='hidden'||Date.now()-lastCheck<30000)return;lastCheck=Date.now();r.update().catch(()=>{})};
+  check();document.addEventListener('visibilitychange',check);window.addEventListener('online',check);
+ }).catch(()=>{$('#offlineState').textContent=t('offline')});
 }
