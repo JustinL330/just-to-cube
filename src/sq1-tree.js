@@ -12,7 +12,7 @@ export function initSQ1Tree({root,trigger,request,t,shapeName,diagram,copy,getCu
  <div class="sq1-section-top"><div><p class="eyebrow" data-sq="treeEyebrow"></p><h2 id="sq1TreeTitle" data-sq="treeTitle"></h2></div><button type="button" id="sq1TreeClose" class="secondary" data-sq="treeClose"></button></div>
  <p class="muted sq1-tree-intro" data-sq="treeIntro"></p>
  <div class="sq1-tree-search sq1-filters"><label><span data-sq="top"></span><input id="sq1TreeTopSearch" type="search" autocomplete="off" spellcheck="false" aria-describedby="sq1TreeSearchHint"></label><label><span data-sq="bottom"></span><input id="sq1TreeBottomSearch" type="search" autocomplete="off" spellcheck="false" aria-describedby="sq1TreeSearchHint"></label></div>
- <p id="sq1TreeSearchHint" class="muted sq1-search-hint" data-sq="searchHint"></p><p id="sq1TreeMatchCount" class="sq1-tree-match-count" role="status" aria-live="polite"></p><div id="sq1TreeResults" class="sq1-tree-results"></div>
+ <p id="sq1TreeSearchHint" class="muted sq1-search-hint" data-sq="searchHint"></p><p class="muted sq1-search-hint" data-sq="treeAutoSearch"></p><p id="sq1TreeMatchCount" class="sq1-tree-match-count" role="status" aria-live="polite"></p><div id="sq1TreeResults" class="sq1-tree-results"></div>
  <div id="sq1TreeStatus" class="sq1-tree-status" role="status" aria-live="polite"></div><button type="button" id="sq1TreeRetry" class="text-button" hidden data-sq="retry"></button>
  <div id="sq1TreeDetail" class="sq1-tree-detail"></div>
  <div class="sq1-tree-toolbar"><div class="sq1-tree-tools"><button type="button" id="sq1TreeCurrent" class="secondary" data-sq="treeCurrent"></button><button type="button" id="sq1TreeOverview" class="secondary" data-sq="treeOverview"></button><button type="button" id="sq1TreeClear" class="text-button" data-sq="treeClear"></button></div><div class="sq1-tree-options"><label class="sq1-tree-only"><input type="checkbox" id="sq1TreeOnlyRoutes" checked><span data-sq="treeOnlyRoutes"></span></label><label class="sq1-tree-only"><input type="checkbox" id="sq1TreeAllPaths" checked><span data-sq="treeAllRoutes"></span></label></div>
@@ -25,7 +25,7 @@ export function initSQ1Tree({root,trigger,request,t,shapeName,diagram,copy,getCu
  const $=selector=>root.querySelector(selector),topSearch=$('#sq1TreeTopSearch'),bottomSearch=$('#sq1TreeBottomSearch'),viewport=$('#sq1TreeViewport'),size=$('#sq1TreeSize'),canvas=$('#sq1TreeCanvas');
  let data=null,selectedId=null,selectedState=null,selectedSwapped=false,source='canonical',analysis=null,groups=[],groupIndex=0,variantIndex=0,frameIndex=0;
  let loadEpoch=0,selectionEpoch=0,loading=false,solving=false,failed=false,layout=null,zoom=1,fitMode=true,readableFit=true,userClosed=root.hidden,lastCurrentSignature=null;
- let nodeElements=new Map(),edgeElements=new Map(),matches=new Map();
+ let nodeElements=new Map(),edgeElements=new Map(),matches=new Map(),searchTimer=null;
  const hasQuery=()=>!!(topSearch.value.trim()||bottomSearch.value.trim());
  const selectedCase=()=>data?.nodes.find(c=>c.id===selectedId);
  const caseLabel=c=>c?`${shapeName(c.top)} + ${shapeName(c.bottom)}`:'';
@@ -108,7 +108,7 @@ export function initSQ1Tree({root,trigger,request,t,shapeName,diagram,copy,getCu
  }
  function renderDetails(){
   const detail=$('#sq1TreeDetail');detail.replaceChildren();const c=selectedCase();
-  if(!c){detail.append(element('p',t('treePrompt'),'muted'));return;}
+  if(!c){detail.append(element('p',t(hasQuery()?(matches.size?'treeAutoSearch':'noMatches'):'treePrompt'),'muted'));return;}
   const picture=element('div',undefined,'sq1-tree-selected-picture'),text=element('div',undefined,'sq1-tree-selected-text'),state=chosenRoute()?.frames[0]?.state||selectedState;
   picture.append(state&&renderState?renderState(state):diagram(c));
   const code=element('code',state?[layerCode(state.top),layerCode(state.bottom)].join(' / '):c.codes.join(' / '),'sq1-tree-selected-code');code.hidden=getDisplayPreferences().showCodes===false;
@@ -147,7 +147,9 @@ export function initSQ1Tree({root,trigger,request,t,shapeName,diagram,copy,getCu
   route.path.map(treeCaseId).forEach((id,i)=>{const c=data.nodes.find(c=>c.id===id),button=element('button',`${i} · ${identifyLayers(shapeFrames[i].state).map(shapeName).join(' + ')}`,'secondary');button.type='button';button.dataset.caseId=id;button.onclick=()=>selectCase(id,{state:shapeFrames[i].state,poseSource:'branch'});$('#sq1TreeRouteCases').append(button);});selectFrame(frameIndex,false);
  }
  async function selectCase(id,{force=false,state=null,poseSource=null,swapped=false}={}){
+  clearTimeout(searchTimer);searchTimer=null;
   if(!data?.nodes.some(c=>c.id===id))return;
+  if(hasQuery()&&((state&&poseSource!=='canonical')||!matches.has(id))){topSearch.value=bottomSearch.value='';renderSearch();}
   const nextSource=poseSource||(state?'current':'canonical'),pose=state?JSON.stringify(state):null;
   if(id===selectedId&&analysis&&!force&&source===nextSource&&(state?pose===JSON.stringify(selectedState):selectedSwapped===swapped))return;
   const token=++selectionEpoch;selectedId=id;selectedSwapped=swapped;selectedState=state?structuredClone(state):null;source=nextSource;analysis=null;groups=[];groupIndex=variantIndex=frameIndex=0;solving=true;failed=false;fitMode=true;readableFit=true;
@@ -159,17 +161,29 @@ export function initSQ1Tree({root,trigger,request,t,shapeName,diagram,copy,getCu
    if(!result.routes?.length)throw Error('no_routes');selectedState=result.routes[0].frames[0].state;analysis=result;groups=groupTreeRoutes(result);
   }
   catch{if(token===selectionEpoch)failed=true;}
-  finally{if(token===selectionEpoch){solving=false;renderDetails();renderRoutes();renderStatus();drawTree();const selected=layout?.nodes.find(c=>c.id===selectedId);if(selected){viewport.scrollLeft=(selected.x+selected.width/2)*zoom-viewport.clientWidth/2;viewport.scrollTop=selected.y*zoom-viewport.clientHeight*.6;}}}
+  finally{if(token===selectionEpoch){solving=false;renderDetails();renderRoutes();renderStatus();drawTree();const selected=layout?.nodes.find(c=>c.id===selectedId);if(selected)viewport.scrollLeft=(selected.x+selected.width/2)*zoom-viewport.clientWidth/2;}}
  }
  async function open(scroll=false){
   root.hidden=false;userClosed=false;trigger.setAttribute('aria-expanded','true');if(scroll)root.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
-  if(data){update();const current=getCurrentCase();if(!selectedId&&current?.state)selectCase(current.caseId,{state:current.state});return;}if(loading)return;
+  if(data){update();const current=getCurrentCase();if(!selectedId){if(hasQuery())searchChanged();else if(current?.state)selectCase(current.caseId,{state:current.state});}return;}if(loading)return;
   const token=++loadEpoch;loading=true;failed=false;renderStatus();
-  try{const result=await request('tree');if(token!==loadEpoch)return;data={...result,nodes:result.nodes.map(c=>({...c,codes:c.id.split(':').map(id=>shapeCodes.get(id))}))};renderSearch();renderDetails();renderRoutes();drawTree();const current=getCurrentCase();if(current?.state)selectCase(current.caseId,{state:current.state});}
+  try{const result=await request('tree');if(token!==loadEpoch)return;data={...result,nodes:result.nodes.map(c=>({...c,codes:c.id.split(':').map(id=>shapeCodes.get(id))}))};renderSearch();renderDetails();renderRoutes();drawTree();const current=getCurrentCase();if(hasQuery())searchChanged();else if(current?.state)selectCase(current.caseId,{state:current.state});}
   catch{if(token===loadEpoch)failed=true;}
   finally{if(token===loadEpoch){loading=false;renderStatus();}}
  }
- function clear(){selectionEpoch++;selectedId=null;selectedState=null;analysis=null;groups=[];groupIndex=variantIndex=frameIndex=0;source='canonical';solving=false;failed=false;$('#sq1TreeOnlyRoutes').checked=false;$('#sq1TreeAllPaths').checked=true;renderSearch();renderDetails();renderRoutes();renderStatus();drawTree();}
+ function clear(){clearTimeout(searchTimer);searchTimer=null;selectionEpoch++;selectedId=null;selectedState=null;analysis=null;groups=[];groupIndex=variantIndex=frameIndex=0;source='canonical';solving=false;failed=false;$('#sq1TreeOnlyRoutes').checked=false;$('#sq1TreeAllPaths').checked=true;renderSearch();renderDetails();renderRoutes();renderStatus();drawTree();}
+ function searchChanged(immediate=false){
+  clearTimeout(searchTimer);searchTimer=null;renderSearch();
+  if(!hasQuery()){renderDetails();return;}
+  // A result list must never sit above an unrelated, previously selected solve.
+  if(selectedId)clear();
+  if(matches.size===1){
+   const [id,orientation]=matches.entries().next().value;
+   const openMatch=()=>{searchTimer=null;selectCase(id,{swapped:orientation==='swapped'});};
+   if(immediate)openMatch();else searchTimer=setTimeout(openMatch,160);
+  }
+  renderDetails();
+ }
  function update(){
   root.querySelectorAll('[data-sq]').forEach(e=>e.textContent=t(e.dataset.sq));
   for(const [input,side]of [[topSearch,'top'],[bottomSearch,'bottom']]){input.placeholder=t('search');input.setAttribute('aria-label',`${t(side)}: ${t('search')}`);}
@@ -181,14 +195,15 @@ export function initSQ1Tree({root,trigger,request,t,shapeName,diagram,copy,getCu
   const current=getCurrentCase(),signature=currentSignature(current);renderStatus();
   if(signature===lastCurrentSignature)return;lastCurrentSignature=signature;
   if(!current?.state){if(source==='current'||source==='branch')clear();if(!userClosed&&!data&&!loading&&!failed)open();return;}
-  if(userClosed)return;if(!data){open();return;}selectCase(current.caseId,{state:current.state});
+  if(userClosed)return;if(!data){open();return;}if(!hasQuery())selectCase(current.caseId,{state:current.state});
  }
- function close(){root.hidden=true;userClosed=true;trigger.setAttribute('aria-expanded','false');trigger.focus();}
+ function close(){clearTimeout(searchTimer);searchTimer=null;root.hidden=true;userClosed=true;trigger.setAttribute('aria-expanded','false');trigger.focus();}
  trigger.onclick=()=>root.hidden?open(true):root.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
  $('#sq1TreeClose').onclick=close;$('#sq1TreeClear').onclick=clear;$('#sq1TreeCurrent').onclick=()=>{const current=getCurrentCase();if(current?.state)selectCase(current.caseId,{state:current.state});};
  $('#sq1TreeOverview').onclick=()=>{$('#sq1TreeOnlyRoutes').checked=false;fitMode=true;readableFit=false;drawTree();};
  $('#sq1TreeRetry').onclick=()=>data&&selectedId?selectCase(selectedId,{force:true,state:selectedState,poseSource:source,swapped:selectedSwapped}):open();
- topSearch.oninput=bottomSearch.oninput=()=>{renderSearch();renderDetails();};
+ topSearch.oninput=bottomSearch.oninput=()=>searchChanged();
+ topSearch.onkeydown=bottomSearch.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();searchChanged(true);}};
  $('#sq1TreeOnlyRoutes').onchange=()=>{fitMode=true;readableFit=$('#sq1TreeOnlyRoutes').checked;drawTree();};$('#sq1TreeAllPaths').onchange=()=>{renderRoutes();fitMode=true;drawTree();};
  $('#sq1TreeRoutes').onchange=e=>{groupIndex=Number(e.target.value);variantIndex=frameIndex=0;$('#sq1TreeAllPaths').checked=false;renderRoutes();drawTree();};$('#sq1TreeVariants').onchange=e=>{variantIndex=Number(e.target.value);frameIndex=0;renderRoutes();renderDetails();paintGraph();};
  $('#sq1TreeCopy').onclick=()=>{const route=chosenRoute();if(route)copy(route.alg);};

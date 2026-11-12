@@ -11,10 +11,11 @@ export function matchesShape(shape,input=''){
  if(/^[CE]+$/.test(code)){
   const width=[...code].reduce((total,piece)=>total+(piece==='C'?2:1),0);
   if(width>12||code.length>shape.code.length)return false;
-  // Only a complete ring may be rotated as a whole. A partial query must
-  // retain its piece order, and may cross the stored ring's starting point.
+  // Reading origins never change a C/E pattern, including a partial query.
+  // A complete ring must still match exactly; mirrors remain distinct.
   if(width===12)return canonicalCode(code)===shape.code;
-  return (shape.code+shape.code).includes(code);
+  const ring=shape.code+shape.code;
+  return [...code].some((_,start)=>ring.includes(code.slice(start)+code.slice(0,start)));
  }
  const haystack=normalize([shape.en,shape.zh,traditional(shape.zh),shape.id].join(' ')).replace(/[-_]/g,' ');
  const textQuery=normalize(query.replace(/[-_]/g,' '));

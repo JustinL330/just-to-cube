@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {SHAPES,cases} from '../src/sq1-engine.js';
+import {SHAPES,cases,canonicalCode} from '../src/sq1-engine.js';
 import {matchesShape,matchCaseLayers} from '../src/sq1-search.js';
 
 const byId=new Map(SHAPES.map(shape=>[shape.id,shape]));
@@ -21,15 +21,35 @@ test('all 29 full rings match exactly their shape at every reading origin',()=>{
  }
 });
 
-test('partial C/E searches preserve consecutive order and wrap once around the origin',()=>{
+test('partial C/E searches are cyclic at both reading origins and preserve piece order',()=>{
  const pawn=byId.get('right-pawn');
  assert.ok(!pawn.code.includes('EECC'));
  assert.ok(matchesShape(pawn,'EECC'),'the partial pattern crosses the reading origin');
- assert.equal(matchesShape(pawn,'CCEE'),false,'rotating an incomplete fragment changes its meaning');
+ assert.ok(matchesShape(pawn,'CCEE'),'rotating a partial query preserves its matches');
  const fragments=new Set(SHAPES.flatMap(s=>rotations(s.code).flatMap(r=>Array.from({length:r.length},(_,i)=>r.slice(0,i+1)))));
  for(const query of fragments)for(const shape of SHAPES){
-  const expected=rotations(shape.code).some(r=>r.startsWith(query));
+  const expected=shape.code.length>=query.length&&rotations(shape.code).some(r=>canonicalCode(r.slice(0,query.length))===canonicalCode(query));
   assert.equal(matchesShape(shape,query),expected,`${shape.id}: ${query}`);
+ }
+});
+
+test('the reported cyclic example returns identical results in either layer field',()=>{
+ const first='CCEECC',second='CCCEEC';
+ assert.equal(canonicalCode(first),canonicalCode(second));
+ assert.ok(findCases('',first).length>0);
+ for(const code of rotations(first)){
+  assert.deepEqual(findCases('',code),findCases('',second));
+  assert.deepEqual(findCases(code,''),findCases(second,''));
+ }
+});
+
+test('the reported lower-layer mushroom and all its reading origins stay on the lower layer',()=>{
+ const top='CCECECEE',bottom='CCECCEEE';
+ assert.equal(byId.get('mushroom').code,bottom);
+ for(const code of rotations(bottom)){
+  assert.deepEqual(findCases(top,code).map(c=>c.id),['left-fist:mushroom']);
+  assert.equal(matchCaseLayers(findCases(top,code)[0],top,code),'direct');
+  assert.equal(matchCaseLayers(findCases(top,code)[0],code,top),'swapped');
  }
 });
 
