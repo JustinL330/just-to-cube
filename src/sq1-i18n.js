@@ -47,13 +47,13 @@ const currentCaseLabels={
 };
 for(const[locale,labels]of Object.entries(currentCaseLabels))Object.assign(sq1Dictionaries[locale],labels);
 const searchLabels={
- en:{searchHint:"Enter either layer or both; swapped layers also match. C/E patterns are cyclic, including partial codes: CCEECC = CCCEEC. Complete rings match exactly; mirrors remain distinct.",treeAutoSearch:"A single match opens automatically. With several matches, choose a case below.",swappedMatch:'Top/bottom swapped from your input'},
- zh_cn:{searchHint:"可只填一层，支持顶底互换。C/E 按回环匹配，片段换起点也相同，例如 CCEECC = CCCEEC；完整一圈精确匹配，镜像仍分开。",treeAutoSearch:"只有一个匹配时自动显示图解与公式；多个匹配时，请点击下方 case。",swappedMatch:'与输入相比，标准 case 顶底互换'},
- zh_hk:{searchHint:"可只填一層，支援頂底互換。C/E 按回環匹配，片段換起點也相同，例如 CCEECC = CCCEEC；完整一圈精確匹配，鏡像仍分開。",treeAutoSearch:"只有一個符合結果時自動顯示圖解與公式；多個結果時，請點擊下方 case。",swappedMatch:'與輸入相比，標準 case 頂底互換'},
- ja:{searchHint:"片方または両層で検索でき、上下の入れ替えにも対応します。部分コードも開始点を変えた同じ環として検索します：CCEECC = CCCEEC。一周分は完全一致し、鏡像は区別します。",treeAutoSearch:"一致が一つなら図と手順を自動表示します。複数ある場合は下のケースを選んでください。",swappedMatch:'入力に対して上下が逆のケース'},
- ko:{searchHint:"한 층 또는 두 층을 검색하며 위아래 교환도 지원합니다. 일부 코드도 시작점이 다른 같은 고리로 검색합니다: CCEECC = CCCEEC. 전체 고리는 정확히 일치하며 거울상은 구별합니다.",treeAutoSearch:"결과가 하나면 그림과 공식을 자동으로 엽니다. 여러 개면 아래 케이스를 선택하세요.",swappedMatch:'입력과 위아래가 바뀐 케이스'},
- fr:{searchHint:"Renseignez une couche ou les deux ; leur inversion est acceptée. Les codes partiels sont aussi cycliques : CCEECC = CCCEEC. Un anneau complet doit correspondre exactement ; les miroirs restent distincts.",treeAutoSearch:"Un seul résultat ouvre automatiquement les figures et la formule. Sinon, choisissez un cas ci-dessous.",swappedMatch:'Couches inversées par rapport à la saisie'},
- de:{searchHint:"Eine oder beide Ebenen eingeben; vertauschte Ebenen sind erlaubt. Auch Teilcodes sind zyklisch: CCEECC = CCCEEC. Ganze Ringe müssen genau passen; Spiegelbilder bleiben getrennt.",treeAutoSearch:"Ein einzelner Treffer öffnet Bilder und Formel automatisch. Bei mehreren Treffern unten einen Fall wählen.",swappedMatch:'Oben/unten gegenüber der Eingabe vertauscht'}
+ en:{treeAutoSearch:"A single match opens automatically. With several matches, choose a case below.",swappedMatch:'Top/bottom swapped from your input'},
+ zh_cn:{treeAutoSearch:"只有一个匹配时自动显示图解与公式；多个匹配时，请点击下方 case。",swappedMatch:'与输入相比，标准 case 顶底互换'},
+ zh_hk:{treeAutoSearch:"只有一個符合結果時自動顯示圖解與公式；多個結果時，請點擊下方 case。",swappedMatch:'與輸入相比，標準 case 頂底互換'},
+ ja:{treeAutoSearch:"一致が一つなら図と手順を自動表示します。複数ある場合は下のケースを選んでください。",swappedMatch:'入力に対して上下が逆のケース'},
+ ko:{treeAutoSearch:"결과가 하나면 그림과 공식을 자동으로 엽니다. 여러 개면 아래 케이스를 선택하세요.",swappedMatch:'입력과 위아래가 바뀐 케이스'},
+ fr:{treeAutoSearch:"Un seul résultat ouvre automatiquement les figures et la formule. Sinon, choisissez un cas ci-dessous.",swappedMatch:'Couches inversées par rapport à la saisie'},
+ de:{treeAutoSearch:"Ein einzelner Treffer öffnet Bilder und Formel automatisch. Bei mehreren Treffern unten einen Fall wählen.",swappedMatch:'Oben/unten gegenüber der Eingabe vertauscht'}
 };
 for(const[locale,labels]of Object.entries(searchLabels))Object.assign(sq1Dictionaries[locale],labels);
 const treeLabels={
@@ -113,4 +113,84 @@ const treeSolutionLabels={
 for(const[locale,labels]of Object.entries(treeSolutionLabels))Object.assign(sq1Dictionaries[locale],labels);
 const branchHints={en:'This branch starts from the exact intermediate state pictured below. Keep that pose and continue with the formula.',zh_cn:'这条分支从下方图示的实际中途状态开始。保持这个摆位，再执行公式。',zh_hk:'這條分支從下方圖示的實際中途狀態開始。保持這個擺位，再執行公式。',ja:'この分岐は下の途中状態の実際の配置から始まります。その配置のまま手順を続けてください。',ko:'아래 그림의 실제 중간 상태에서 시작하는 분기입니다. 해당 배치를 유지한 채 공식을 이어서 실행하세요.',fr:'Cette branche part exactement de l’état intermédiaire illustré ci-dessous. Gardez cette disposition et continuez la formule.',de:'Dieser Zweig beginnt genau im unten gezeigten Zwischenzustand. Behalte diese Lage bei und folge der Formel.'};
 for(const[locale,text]of Object.entries(branchHints))sq1Dictionaries[locale].treeBranchPoseHint=text;
+const ceSearchLabels={
+ "en": {
+  "searchHint": "Enter a complete layer: C = corner (2 units), E = edge (1 unit), totaling 12 units. Reading origins may rotate; mirrors remain distinct. Either layer may be blank, and layer swaps also match.",
+  "ceRecognized": "Recognized: {name} · {corners}C + {edges}E = 12 units.",
+  "ceIncomplete": "Incomplete ring: {units}/12 units; {remaining} more needed. C counts as 2, E as 1.",
+  "ceTooLong": "Too long: {units}/12 units; remove {excess} units.",
+  "ceUnavailable": "This ring needs {edges} edges, but Square-1 has only 8 in total.",
+  "ceInvalid": "A C/E code can contain only C and E; spaces, commas and hyphens are allowed.",
+  "cePairInvalid": "Both layers are valid separately, but together use {corners} corners and {edges} edges. A Square-1 requires 8 of each.",
+  "libraryFilterHint": "These fields filter the training library. Checkboxes set the random practice pool; use View solutions to inspect a particular result.",
+  "inspectCase": "View solutions"
+ },
+ "zh_cn": {
+  "searchHint": "请输入完整一圈：C = 角块（2 单位），E = 棱块（1 单位），合计 12 单位。换起点等价，镜像分开；可留一层空白，也支持顶底互换。",
+  "ceRecognized": "已识别：{name} · {corners}C + {edges}E = 12 单位。",
+  "ceIncomplete": "尚未成一圈：{units}/12 单位，还差 {remaining} 单位。C 计 2，E 计 1。",
+  "ceTooLong": "编码过长：{units}/12 单位，超出 {excess} 单位。",
+  "ceUnavailable": "这串编码需要 {edges} 个棱块，但 SQ-1 总共只有 8 个棱块。",
+  "ceInvalid": "C/E 编码只能包含 C 和 E；允许空格、逗号或短横线分隔。",
+  "cePairInvalid": "两层各自有效，但合计有 {corners} 个角块、{edges} 个棱块；SQ-1 应各有 8 个，请检查输入。",
+  "libraryFilterHint": "这里筛选训练库；勾选控制随机出题范围。要查看某个结果的图解与公式，请点“查看此 case 解法”。",
+  "inspectCase": "查看此 case 解法"
+ },
+ "zh_hk": {
+  "searchHint": "請輸入完整一圈：C = 角塊（2 單位），E = 棱塊（1 單位），合計 12 單位。換起點等價，鏡像分開；可留一層空白，也支援頂底互換。",
+  "ceRecognized": "已識別：{name} · {corners}C + {edges}E = 12 單位。",
+  "ceIncomplete": "尚未成一圈：{units}/12 單位，還差 {remaining} 單位。C 計 2，E 計 1。",
+  "ceTooLong": "編碼過長：{units}/12 單位，超出 {excess} 單位。",
+  "ceUnavailable": "這串編碼需要 {edges} 個棱塊，但 SQ-1 總共只有 8 個棱塊。",
+  "ceInvalid": "C/E 編碼只能包含 C 和 E；允許空格、逗號或短橫線分隔。",
+  "cePairInvalid": "兩層各自有效，但合計有 {corners} 個角塊、{edges} 個棱塊；SQ-1 應各有 8 個，請檢查輸入。",
+  "libraryFilterHint": "這裡篩選訓練庫；勾選控制隨機出題範圍。要查看某個結果的圖解與公式，請點「查看此 case 解法」。",
+  "inspectCase": "查看此 case 解法"
+ },
+ "ja": {
+  "searchHint": "一層の一周分を入力：C = コーナー（2単位）、E = エッジ（1単位）、合計12単位です。開始点の変更は同じ形、鏡像は別です。片層だけでも上下逆でも検索できます。",
+  "ceRecognized": "認識：{name} · {corners}C + {edges}E = 12単位。",
+  "ceIncomplete": "一周分が未完成：{units}/12単位。あと{remaining}単位必要です。Cは2、Eは1です。",
+  "ceTooLong": "長すぎます：{units}/12単位、{excess}単位超過しています。",
+  "ceUnavailable": "このコードにはエッジが{edges}個必要ですが、SQ-1全体で8個しかありません。",
+  "ceInvalid": "コードにはCとEだけを使います。空白、カンマ、ハイフンで区切れます。",
+  "cePairInvalid": "各層は有効ですが、合計コーナー{corners}個・エッジ{edges}個です。SQ-1は各8個必要です。",
+  "libraryFilterHint": "ここは練習ライブラリーの絞り込みです。チェックはランダム出題範囲を変更します。特定の図と手順は「解法を見る」で開けます。",
+  "inspectCase": "解法を見る"
+ },
+ "ko": {
+  "searchHint": "한 층 전체를 입력하세요: C = 코너(2단위), E = 엣지(1단위), 합계12단위입니다. 시작점 변경은 같은 모양이며 거울상은 구별합니다. 한 층만 입력하거나 위아래를 바꿔도 됩니다.",
+  "ceRecognized": "인식됨: {name} · {corners}C + {edges}E = 12단위.",
+  "ceIncomplete": "미완성 고리: {units}/12단위, {remaining}단위 더 필요합니다. C는2, E는1입니다.",
+  "ceTooLong": "너무 깁니다: {units}/12단위, {excess}단위 초과입니다.",
+  "ceUnavailable": "이 코드는 엣지가{edges}개 필요하지만 SQ-1 전체에는8개만 있습니다.",
+  "ceInvalid": "C/E 코드에는C와E만 사용할 수 있습니다. 공백, 쉼표, 하이픈으로 구분할 수 있습니다.",
+  "cePairInvalid": "각 층은 유효하지만 합계 코너{corners}개, 엣지{edges}개입니다. SQ-1에는 각각8개가 필요합니다.",
+  "libraryFilterHint": "이 입력은 연습 목록을 필터링합니다. 체크박스는 무작위 출제 범위이며 특정 그림과 공식은 해법 보기로 여세요.",
+  "inspectCase": "해법 보기"
+ },
+ "fr": {
+  "searchHint": "Saisissez une couche complète : C = coin (2 unités), E = arête (1 unité), soit 12 unités. Le point de départ peut changer, les miroirs restent distincts. Une couche peut rester vide ; les couches inversées correspondent aussi.",
+  "ceRecognized": "Reconnu : {name} · {corners}C + {edges}E = 12 unités.",
+  "ceIncomplete": "Anneau incomplet : {units}/12 unités ; il en manque {remaining}. C vaut 2, E vaut 1.",
+  "ceTooLong": "Trop long : {units}/12 unités, soit {excess} de trop.",
+  "ceUnavailable": "Ce code demande {edges} arêtes ; le SQ-1 en possède seulement 8 au total.",
+  "ceInvalid": "Le code ne contient que C et E ; espaces, virgules et tirets sont autorisés.",
+  "cePairInvalid": "Chaque couche est valide, mais le total donne {corners} coins et {edges} arêtes. Il faut 8 de chaque.",
+  "libraryFilterHint": "Ces champs filtrent la bibliothèque. Les cases à cocher règlent les tirages ; Afficher les solutions ouvre les figures et formules du résultat.",
+  "inspectCase": "Afficher les solutions"
+ },
+ "de": {
+  "searchHint": "Eine ganze Ebene eingeben: C = Ecke (2 Einheiten), E = Kante (1 Einheit), insgesamt 12 Einheiten. Der Startpunkt darf wechseln, Spiegelbilder bleiben getrennt. Eine Ebene darf leer bleiben; vertauschte Ebenen passen ebenfalls.",
+  "ceRecognized": "Erkannt: {name} · {corners}C + {edges}E = 12 Einheiten.",
+  "ceIncomplete": "Unvollständiger Ring: {units}/12 Einheiten; {remaining} fehlen. C zählt 2, E zählt 1.",
+  "ceTooLong": "Zu lang: {units}/12 Einheiten, {excess} zu viel.",
+  "ceUnavailable": "Dieser Code benötigt {edges} Kanten; ein SQ-1 hat insgesamt nur 8.",
+  "ceInvalid": "Ein Code darf nur C und E enthalten; Leerzeichen, Kommas und Bindestriche sind erlaubt.",
+  "cePairInvalid": "Beide Ebenen sind einzeln gültig, ergeben aber {corners} Ecken und {edges} Kanten. Jeweils 8 sind erforderlich.",
+  "libraryFilterHint": "Diese Felder filtern die Bibliothek. Häkchen bestimmen die Zufallsauswahl; Lösungen ansehen öffnet Bilder und Formeln für den Treffer.",
+  "inspectCase": "Lösungen ansehen"
+ }
+};
+for(const[locale,labels]of Object.entries(ceSearchLabels))Object.assign(sq1Dictionaries[locale],labels);
 export function sq1Text(language,key,params={}){let value=(sq1Dictionaries[language]||en)[key]||en[key]||key;for(const[k,v]of Object.entries(params))value=value.replaceAll('{'+k+'}',String(v));return value;}

@@ -1,6 +1,7 @@
 import {SHAPES,PIECES,layerPieces,layerCode,identifyLayers,parseAlg,formatAlg} from './sq1-engine.js';
 import {sq1Text} from './sq1-i18n.js';
 import {matchCaseLayers} from './sq1-search.js';
+import {updateQueryFeedback,updatePairFeedback} from './sq1-search-ui.js';
 import {initSQ1Tree} from './sq1-tree.js';
 
 const NS='http://www.w3.org/2000/svg';
@@ -61,7 +62,7 @@ export function initSQ1({language,settings,save,toast=()=>{}}){
  <div class="sq1-formula-top"><h3 data-sq="formula"></h3><button type="button" id="sq1CopySolution" class="text-button" data-sq="copySolution"></button></div><div id="sq1Formula" class="sq1-formula"></div><p id="sq1StepHelp" class="sq1-step-help"></p>
  <h3 data-sq="steps"></h3><div class="sq1-step-controls"><button id="sq1StepBack" class="secondary" type="button">←</button><span id="sq1FramePosition"></span><button id="sq1StepNext" class="secondary" type="button">→</button></div><div id="sq1Steps" class="sq1-steps"></div></section>
  <section id="sq1CaseSection" class="sq1-case-section card" aria-labelledby="sq1CaseTitle"><div class="sq1-section-top"><div><p class="eyebrow">CASE LIBRARY</p><h2 id="sq1CaseTitle" data-sq="cases"></h2></div><span id="sq1SelectedCount" class="sq1-badge" role="status"></span></div><p class="muted sq1-case-hint" data-sq="casesHint"></p>
- <div class="sq1-filters"><label class="sq1-search-label"><span data-sq="top"></span><input id="sq1TopSearch" type="search" autocomplete="off" spellcheck="false" aria-describedby="sq1SearchHint"></label><label class="sq1-search-label"><span data-sq="bottom"></span><input id="sq1BottomSearch" type="search" autocomplete="off" spellcheck="false" aria-describedby="sq1SearchHint"></label><label><span data-sq="filterShape"></span><select id="sq1ShapeFilter"></select></label><label><span data-sq="depth"></span><select id="sq1DepthFilter"></select></label></div><p id="sq1SearchHint" class="muted sq1-search-hint" data-sq="searchHint"></p>
+ <div class="sq1-filters"><label class="sq1-search-label"><span data-sq="top"></span><input id="sq1TopSearch" type="search" autocomplete="off" spellcheck="false" aria-describedby="sq1SearchHint sq1TopFeedback"><span id="sq1TopFeedback" class="sq1-query-feedback" role="status" aria-live="polite" hidden></span></label><label class="sq1-search-label"><span data-sq="bottom"></span><input id="sq1BottomSearch" type="search" autocomplete="off" spellcheck="false" aria-describedby="sq1SearchHint sq1BottomFeedback"><span id="sq1BottomFeedback" class="sq1-query-feedback" role="status" aria-live="polite" hidden></span></label><label><span data-sq="filterShape"></span><select id="sq1ShapeFilter"></select></label><label><span data-sq="depth"></span><select id="sq1DepthFilter"></select></label></div><p id="sq1PairFeedback" class="sq1-query-feedback" role="status" aria-live="polite" hidden></p><p data-sq="libraryFilterHint" class="muted sq1-search-hint"></p><p id="sq1SearchHint" class="muted sq1-search-hint" data-sq="searchHint"></p>
  <div class="sq1-case-actions"><button type="button" id="sq1All" class="secondary" data-sq="all"></button><button type="button" id="sq1None" class="secondary" data-sq="none"></button><button type="button" id="sq1SelectVisible" class="text-button" data-sq="selectVisible"></button><button type="button" id="sq1ClearVisible" class="text-button" data-sq="clearVisible"></button></div><div id="sq1Cases" class="sq1-case-grid"></div></section>`;
  const $=s=>root.querySelector(s),shapeFilter=$('#sq1ShapeFilter'),depthFilter=$('#sq1DepthFilter'),topSearch=$('#sq1TopSearch'),bottomSearch=$('#sq1BottomSearch');
  root.querySelector('.sq1-cases-jump').onclick=e=>{e.preventDefault();$('#sq1CaseSection').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});};
@@ -92,17 +93,20 @@ export function initSQ1({language,settings,save,toast=()=>{}}){
   return orientation?[{...c,orientation}]:[];
  });}
  function renderCases(){
+  const a=updateQueryFeedback(topSearch,$('#sq1TopFeedback'),{t,shapeName}),b=updateQueryFeedback(bottomSearch,$('#sq1BottomFeedback'),{t,shapeName});updatePairFeedback(a,b,$('#sq1PairFeedback'),{t});
   $('#sq1SelectedCount').textContent=t('selected',{n:prefs.selectedCases.length});const grid=$('#sq1Cases'),selected=new Set(prefs.selectedCases);grid.replaceChildren();
   const matches=matchingCases();if(!matches.length){grid.append(node('p',t('noMatches'),'sq1-no-cases muted'));return;}
   for(const c of matches){
    const [topId,bottomId]=c.orientation==='swapped'?[c.bottom,c.top]:[c.top,c.bottom];
-   const card=node('label',undefined,'sq1-case'+(selected.has(c.id)?' selected':'')),checkbox=node('input');checkbox.type='checkbox';checkbox.value=c.id;checkbox.checked=selected.has(c.id);checkbox.setAttribute('aria-label',`${shapeName(topId)} + ${shapeName(bottomId)} · ${t('slices',{n:c.minSlices})}${c.orientation==='swapped'?' · '+t('swappedMatch'):''}`);
+   const card=node('div',undefined,'sq1-case'+(selected.has(c.id)?' selected':'')),checkbox=node('input');checkbox.type='checkbox';checkbox.value=c.id;checkbox.checked=selected.has(c.id);checkbox.setAttribute('aria-label',`${shapeName(topId)} + ${shapeName(bottomId)} · ${t('slices',{n:c.minSlices})}${c.orientation==='swapped'?' · '+t('swappedMatch'):''}`);
+   const choice=node('label',undefined,'sq1-case-choice');card.append(choice);
    const tick=node('span',checkbox.checked?'✓':'','sq1-case-tick');tick.setAttribute('aria-hidden','true');
-   card.append(checkbox,tick,node('span',t('slices',{n:c.minSlices}),'sq1-case-depth'));
-   const top=SHAPE_MAP.get(topId),bottom=SHAPE_MAP.get(bottomId);card.append(pairDiagram(pairFromCodes(top.code,bottom.code),{mini:true,plain:true}));
-   if(c.orientation==='swapped')card.append(node('span',t('swappedMatch'),'sq1-case-match'));
+   choice.append(checkbox,tick,node('span',t('slices',{n:c.minSlices}),'sq1-case-depth'));
+   const top=SHAPE_MAP.get(topId),bottom=SHAPE_MAP.get(bottomId);choice.append(pairDiagram(pairFromCodes(top.code,bottom.code),{mini:true,plain:true}));
+   if(c.orientation==='swapped')choice.append(node('span',t('swappedMatch'),'sq1-case-match'));
    // A text alternative remains even when diagram labels are hidden.
-   const alt=node('span',`${shapeName(topId)} + ${shapeName(bottomId)}`,'sr-only');card.append(alt);
+   const alt=node('span',`${shapeName(topId)} + ${shapeName(bottomId)}`,'sr-only');choice.append(alt);
+   const inspect=node('button',t('inspectCase'),'sq1-inspect-case secondary');inspect.type='button';inspect.onclick=()=>tree?.showCase(c.id,{swapped:c.orientation==='swapped'});card.append(inspect);
    checkbox.onchange=()=>{if(checkbox.checked)prefs.selectedCases=[...new Set([...prefs.selectedCases,c.id])];else prefs.selectedCases=prefs.selectedCases.filter(id=>id!==c.id);persist();card.classList.toggle('selected',checkbox.checked);tick.textContent=checkbox.checked?'✓':'';$('#sq1SelectedCount').textContent=t('selected',{n:prefs.selectedCases.length});renderControls();};grid.append(card);
   }
  }

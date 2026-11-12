@@ -1,4 +1,5 @@
 import {matchCaseLayers} from './sq1-search.js';
+import {updateQueryFeedback,updatePairFeedback} from './sq1-search-ui.js';
 import {layoutShapeTree,traceShapeTree,treeCaseId,treeEdgeId,groupTreeRoutes} from './sq1-tree-model.js';
 import {SHAPES,identifyLayers,layerCode} from './sq1-engine.js';
 
@@ -11,8 +12,8 @@ export function initSQ1Tree({root,trigger,request,t,shapeName,diagram,copy,getCu
  root.innerHTML=`
  <div class="sq1-section-top"><div><p class="eyebrow" data-sq="treeEyebrow"></p><h2 id="sq1TreeTitle" data-sq="treeTitle"></h2></div><button type="button" id="sq1TreeClose" class="secondary" data-sq="treeClose"></button></div>
  <p class="muted sq1-tree-intro" data-sq="treeIntro"></p>
- <div class="sq1-tree-search sq1-filters"><label><span data-sq="top"></span><input id="sq1TreeTopSearch" type="search" autocomplete="off" spellcheck="false" aria-describedby="sq1TreeSearchHint"></label><label><span data-sq="bottom"></span><input id="sq1TreeBottomSearch" type="search" autocomplete="off" spellcheck="false" aria-describedby="sq1TreeSearchHint"></label></div>
- <p id="sq1TreeSearchHint" class="muted sq1-search-hint" data-sq="searchHint"></p><p class="muted sq1-search-hint" data-sq="treeAutoSearch"></p><p id="sq1TreeMatchCount" class="sq1-tree-match-count" role="status" aria-live="polite"></p><div id="sq1TreeResults" class="sq1-tree-results"></div>
+ <div class="sq1-tree-search sq1-filters"><label><span data-sq="top"></span><input id="sq1TreeTopSearch" type="search" autocomplete="off" spellcheck="false" aria-describedby="sq1TreeSearchHint sq1TreeTopFeedback"><span id="sq1TreeTopFeedback" class="sq1-query-feedback" role="status" aria-live="polite" hidden></span></label><label><span data-sq="bottom"></span><input id="sq1TreeBottomSearch" type="search" autocomplete="off" spellcheck="false" aria-describedby="sq1TreeSearchHint sq1TreeBottomFeedback"><span id="sq1TreeBottomFeedback" class="sq1-query-feedback" role="status" aria-live="polite" hidden></span></label></div>
+ <p id="sq1TreePairFeedback" class="sq1-query-feedback" role="status" aria-live="polite" hidden></p><p id="sq1TreeSearchHint" class="muted sq1-search-hint" data-sq="searchHint"></p><p class="muted sq1-search-hint" data-sq="treeAutoSearch"></p><p id="sq1TreeMatchCount" class="sq1-tree-match-count" role="status" aria-live="polite"></p><div id="sq1TreeResults" class="sq1-tree-results"></div>
  <div id="sq1TreeStatus" class="sq1-tree-status" role="status" aria-live="polite"></div><button type="button" id="sq1TreeRetry" class="text-button" hidden data-sq="retry"></button>
  <div id="sq1TreeDetail" class="sq1-tree-detail"></div>
  <div class="sq1-tree-toolbar"><div class="sq1-tree-tools"><button type="button" id="sq1TreeCurrent" class="secondary" data-sq="treeCurrent"></button><button type="button" id="sq1TreeOverview" class="secondary" data-sq="treeOverview"></button><button type="button" id="sq1TreeClear" class="text-button" data-sq="treeClear"></button></div><div class="sq1-tree-options"><label class="sq1-tree-only"><input type="checkbox" id="sq1TreeOnlyRoutes" checked><span data-sq="treeOnlyRoutes"></span></label><label class="sq1-tree-only"><input type="checkbox" id="sq1TreeAllPaths" checked><span data-sq="treeAllRoutes"></span></label></div>
@@ -44,6 +45,7 @@ export function initSQ1Tree({root,trigger,request,t,shapeName,diagram,copy,getCu
   for(const id of ['sq1TreeZoomOut','sq1TreeZoomIn','sq1TreeFit','sq1TreeOverview'])$('#'+id).disabled=!data;
  }
  function renderSearch(){
+  const a=updateQueryFeedback(topSearch,$('#sq1TreeTopFeedback'),{t,shapeName}),b=updateQueryFeedback(bottomSearch,$('#sq1TreeBottomFeedback'),{t,shapeName});updatePairFeedback(a,b,$('#sq1TreePairFeedback'),{t});
   matches=new Map();$('#sq1TreeResults').replaceChildren();
   if(!data){$('#sq1TreeMatchCount').textContent='';return;}
   for(const c of data.nodes){const orientation=matchCaseLayers(c,topSearch.value,bottomSearch.value);if(orientation)matches.set(c.id,orientation);}
@@ -64,6 +66,16 @@ export function initSQ1Tree({root,trigger,request,t,shapeName,diagram,copy,getCu
  function paintGraph(){
   const active=trace(),onRoute=new Set(active.caseIds),onEdge=new Set(active.edgeIds),query=hasQuery(),frameCase=activeFrameCase();
   for(const [id,button]of nodeElements){
+   const c=data.nodes.find(node=>node.id===id);
+   const [top,bottom]=id===selectedId&&selectedState?identifyLayers(selectedState):matches.get(id)==='swapped'?[c.bottom,c.top]:[c.top,c.bottom];
+   const layerOrder=`${top}:${bottom}`,shown={...c,top,bottom,codes:[shapeCodes.get(top),shapeCodes.get(bottom)]};
+   if(button.dataset.layerOrder!==layerOrder){
+    const previous=button.querySelector('.sq1-pair'),picture=diagram(shown);
+    if(previous)previous.replaceWith(picture);else button.append(picture);
+    button.dataset.layerOrder=layerOrder;
+   }
+   const name=`${caseLabel(shown)} · ${shown.codes.join(' / ')} · ${t('slices',{n:c.minSlices})}`;
+   button.setAttribute('aria-label',name);button.title=name;
    button.classList.toggle('is-start',id===selectedId);button.classList.toggle('is-route',onRoute.has(id));button.classList.toggle('is-match',query&&matches.has(id));button.classList.toggle('is-frame',id===frameCase);
    button.classList.toggle('is-muted',(!!selectedId||query)&&!onRoute.has(id)&&!(query&&matches.has(id)));
    button.setAttribute('aria-pressed',String(id===selectedId));
@@ -100,8 +112,7 @@ export function initSQ1Tree({root,trigger,request,t,shapeName,diagram,copy,getCu
   for(const level of layout.levels){const label=element('span',String(level.depth),'sq1-tree-level');label.style.top=`${level.y}px`;label.title=t('slices',{n:level.depth});canvas.append(label);}
   for(const c of layout.nodes){
    const button=element('button',undefined,'sq1-tree-node');button.type='button';button.dataset.caseId=c.id;button.style.left=`${c.x}px`;button.style.top=`${c.y}px`;button.style.width=`${c.width}px`;button.style.height=`${c.height}px`;
-   const number=data.nodes.findIndex(n=>n.id===c.id)+1;button.append(element('span',String(number).padStart(2,'0'),'sq1-tree-node-number'),diagram(c));
-   const name=`${caseLabel(c)} · ${c.codes.join(' / ')} · ${t('slices',{n:c.minSlices})}`;button.setAttribute('aria-label',name);button.title=name;
+   const number=data.nodes.findIndex(n=>n.id===c.id)+1;button.append(element('span',String(number).padStart(2,'0'),'sq1-tree-node-number'));
    button.onclick=()=>selectCase(c.id,{swapped:hasQuery()&&matches.get(c.id)==='swapped'});canvas.append(button);nodeElements.set(c.id,button);
   }
   paintGraph();setZoom(fitMode?fitScale():zoom,fitMode);
@@ -194,8 +205,8 @@ export function initSQ1Tree({root,trigger,request,t,shapeName,diagram,copy,getCu
  function currentChanged(){
   const current=getCurrentCase(),signature=currentSignature(current);renderStatus();
   if(signature===lastCurrentSignature)return;lastCurrentSignature=signature;
-  if(!current?.state){if(source==='current'||source==='branch')clear();if(!userClosed&&!data&&!loading&&!failed)open();return;}
-  if(userClosed)return;if(!data){open();return;}if(!hasQuery())selectCase(current.caseId,{state:current.state});
+  if(!current?.state){if(source==='current')clear();if(!userClosed&&!data&&!loading&&!failed)open();return;}
+  if(userClosed)return;if(!data){open();return;}if(!hasQuery()&&(!selectedId||source==='current'))selectCase(current.caseId,{state:current.state});
  }
  function close(){clearTimeout(searchTimer);searchTimer=null;root.hidden=true;userClosed=true;trigger.setAttribute('aria-expanded','false');trigger.focus();}
  trigger.onclick=()=>root.hidden?open(true):root.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
@@ -211,5 +222,5 @@ export function initSQ1Tree({root,trigger,request,t,shapeName,diagram,copy,getCu
  $('#sq1TreeFit').onclick=()=>{if(layout){readableFit=false;setZoom(fitScale(),true)}};$('#sq1TreeZoomIn').onclick=()=>setZoom(zoom*1.5);$('#sq1TreeZoomOut').onclick=()=>setZoom(zoom/1.5);
  new ResizeObserver(()=>{if(layout&&fitMode&&!root.hidden)setZoom(fitScale(),true);}).observe(viewport);
  update();if(!root.hidden)open();
- return {update,currentChanged,open:()=>open(true),reset(){loadEpoch++;selectionEpoch++;loading=solving=false;topSearch.value=bottomSearch.value='';lastCurrentSignature=null;userClosed=false;root.hidden=false;trigger.setAttribute('aria-expanded','true');clear();if(!data)open();}};
+ return {update,currentChanged,open:()=>open(true),async showCase(id,{swapped=false}={}){topSearch.value=bottomSearch.value='';await open(true);await selectCase(id,{swapped});},reset(){loadEpoch++;selectionEpoch++;loading=solving=false;topSearch.value=bottomSearch.value='';lastCurrentSignature=null;userClosed=false;root.hidden=false;trigger.setAttribute('aria-expanded','true');clear();if(!data)open();}};
 }

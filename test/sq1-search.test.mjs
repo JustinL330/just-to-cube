@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {SHAPES,cases,canonicalCode} from '../src/sq1-engine.js';
-import {matchesShape,matchCaseLayers} from '../src/sq1-search.js';
+import {matchesShape,matchCaseLayers,analyzeShapeQuery} from '../src/sq1-search.js';
 
 const byId=new Map(SHAPES.map(shape=>[shape.id,shape]));
 const rotations=code=>Array.from({length:code.length},(_,i)=>code.slice(i)+code.slice(0,i));
@@ -21,26 +21,24 @@ test('all 29 full rings match exactly their shape at every reading origin',()=>{
  }
 });
 
-test('partial C/E searches are cyclic at both reading origins and preserve piece order',()=>{
- const pawn=byId.get('right-pawn');
- assert.ok(!pawn.code.includes('EECC'));
- assert.ok(matchesShape(pawn,'EECC'),'the partial pattern crosses the reading origin');
- assert.ok(matchesShape(pawn,'CCEE'),'rotating a partial query preserves its matches');
- const fragments=new Set(SHAPES.flatMap(s=>rotations(s.code).flatMap(r=>Array.from({length:r.length},(_,i)=>r.slice(0,i+1)))));
- for(const query of fragments)for(const shape of SHAPES){
-  const expected=shape.code.length>=query.length&&rotations(shape.code).some(r=>canonicalCode(r.slice(0,query.length))===canonicalCode(query));
-  assert.equal(matchesShape(shape,query),expected,`${shape.id}: ${query}`);
+test('incomplete patterns never identify a shape, even if rotating the fragment would fit',()=>{
+ for(const code of ['C','E','CCE','CEE','CECECE','CCEECC','CCCEEC']){
+  const query=analyzeShapeQuery(code);assert.equal(query.status,'incomplete');
+  assert.ok(SHAPES.every(shape=>!matchesShape(shape,code)),code);
+  assert.deepEqual(findCases('',code),[]);
  }
+ assert.equal(canonicalCode('CCEECC'),canonicalCode('CCCEEC'));
+ assert.equal(analyzeShapeQuery('CCEECC').remaining,2);
 });
 
-test('the reported cyclic example returns identical results in either layer field',()=>{
- const first='CCEECC',second='CCCEEC';
- assert.equal(canonicalCode(first),canonicalCode(second));
- assert.ok(findCases('',first).length>0);
- for(const code of rotations(first)){
-  assert.deepEqual(findCases('',code),findCases('',second));
-  assert.deepEqual(findCases(code,''),findCases(second,''));
- }
+test('queries distinguish incomplete, excessive, impossible and malformed rings from names',()=>{
+ assert.equal(analyzeShapeQuery('CECECE').units,9);
+ assert.equal(analyzeShapeQuery('CECECECECE').status,'tooLong');
+ assert.equal(analyzeShapeQuery('EEEEEEEEEEEE').status,'unavailable');
+ for(const text of ['10101010','CCECCEEE0','CCECCEEE?','CCECCEEZ'])assert.equal(analyzeShapeQuery(text).status,'invalid',text);
+ for(const text of ['蘑菇','风筝','風箏','left fist','Mushroom'])assert.equal(analyzeShapeQuery(text).kind,'name',text);
+ assert.equal(analyzeShapeQuery('CCECCEEE').shape.id,'mushroom');
+ for(const code of rotations('CCECCEEE'))for(const id of ['left-fist','right-fist'])assert.equal(matchesShape(byId.get(id),code),false);
 });
 
 test('the reported lower-layer mushroom and all its reading origins stay on the lower layer',()=>{
@@ -76,14 +74,15 @@ test('all 90 cases accept independent layer rotations and swapped top/bottom wit
  }
 });
 
-test('two queries must match distinct layers, including partial and mixed name/code queries',()=>{
+test('two fields match different complete layers and accept only a valid 8C/8E pair',()=>{
  const c=cases().find(s=>s.id==='right-pawn:square');
- assert.equal(matchCaseLayers(c,'CCCE','square'),'direct');
- assert.equal(matchCaseLayers(c,'square','EECC'),'swapped');
- assert.equal(matchCaseLayers(c,'EECC','right pawn'),null);
+ assert.equal(matchCaseLayers(c,'CCCECEEE','square'),'direct');
+ assert.equal(matchCaseLayers(c,'square','CECEEECC'),'swapped');
+ assert.equal(matchCaseLayers(c,'CCCECEEE','right pawn'),null);
  assert.equal(matchCaseLayers(c,'pawn','right'),null);
- assert.equal(matchCaseLayers(c,'','EECC'),'swapped');
- assert.equal(matchCaseLayers(c,'EECC',''),'direct');
+ assert.equal(matchCaseLayers(c,'','CCCECEEE'),'swapped');
+ assert.equal(matchCaseLayers(c,'CCCECEEE',''),'direct');
  assert.deepEqual(findCases('CCCECEEE','CECECECE').map(s=>s.id),['right-pawn:square']);
  assert.deepEqual(findCases('CECECECE','CECEEECC').map(s=>s.id),['right-pawn:square']);
+ assert.deepEqual(findCases('CECECECE','CCCCCC'),[]);
 });
