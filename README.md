@@ -24,6 +24,10 @@ Timer, Explore and Sessions pages have been retired. Their hashes, the home page
 
 The appearance and shape terminology refer to [Squanmate](https://squanmate.cuber.pro/) ([source](https://github.com/mikavilpas/squanmate), EPL-1.0) and [CubeRoot](https://cuberoot.me/). The new engine and SVG diagrams are independently implemented; no chart image or compiled Squanmate solver is shipped. Shape names are learning labels; Chinese names can vary between communities.
 
+## SQ-1 Algorithms
+
+The top navigation also opens `#sq1-algorithms`: 28 curated formulas across CO, EO, CP, EP and parity, with search, stage filters, copying, colored reference cases, inverse setups and synchronized move-by-move shape diagrams. Every formula links to its original public source. The page and its puzzle assets work offline once caching finishes; external source links require the network. See [sources and validation](docs/sq1-algorithm-sources.md).
+
 ## Validation
 
 `npm test` includes exhaustive shortest-route enumeration/replay for all 170 ordered shape states, independent dynamic-programming route counts, all 90 target-case generation checks and differential piece-state validation against the existing cubing.js model. It also covers account, forum and messaging authorization and data compatibility. Local Worker/SQLite tests need permission to start local test services.

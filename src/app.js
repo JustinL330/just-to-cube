@@ -6,10 +6,11 @@ import {initAI} from './ai-chat.js';
 import {validBackup} from './core.js';
 import {dict,languages} from './i18n.js';
 import {initSQ1} from './sq1.js';
+import {initSQ1Algorithms} from './sq1-algorithms.js';
 import {sq1Text} from './sq1-i18n.js';
 
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-let KEY='jus-cubing-v1',data,account=null,forum=null,messenger=null,trainer=null;
+let KEY='jus-cubing-v1',data,account=null,forum=null,messenger=null,trainer=null,algorithmLibrary=null;
 let updateAI=()=>{},toastTimeout,swReady=false,page='sq1';
 const freshData=()=>({version:1,sessions:[{id:crypto.randomUUID(),name:'3×3×3',event:'333',solves:[]}],settings:{language:'en',dark:false}});
 try{data=JSON.parse(localStorage.getItem(KEY))}catch{}
@@ -36,12 +37,12 @@ function translate(){
  $('#settingsBtn').setAttribute('aria-label',t('settings'));
  $('#sq1Nav').textContent=st('nav');$('#appAbout').textContent=st('about');
  $('#aiShareLabel').textContent=st('contextShare');$('#aiSummaryLabel').textContent=st('contextPreview');
- trainer?.update();updateAI();account?.update();forum?.update();messenger?.update();passwordVisibility.refresh();network();
+ trainer?.update();algorithmLibrary?.update();updateAI();account?.update();forum?.update();messenger?.update();passwordVisibility.refresh();network();
 }
 function setPage(next){
  if(next==='forum')next='checkins';
- page=['sq1','settings','ai','checkins','account','messages'].includes(next)?next:'sq1';
- passwordVisibility.hide();$$('.page').forEach(e=>e.hidden=e.id!==page+'Page');
+ page=['sq1','sq1-algorithms','settings','ai','checkins','account','messages'].includes(next)?next:'sq1';
+ passwordVisibility.hide();algorithmLibrary?.hide();const pageId=page==='sq1-algorithms'?'sq1AlgorithmsPage':page+'Page';$$('.page').forEach(e=>e.hidden=e.id!==pageId);
  $$('.nav').forEach(e=>{const active=e.dataset.page===page;e.classList.toggle('active',active);if(active)e.setAttribute('aria-current','page');else e.removeAttribute('aria-current')});
  if(location.hash!=='#'+page)history.replaceState(null,'','#'+page);
  if(page==='checkins')forum?.load();
@@ -71,6 +72,7 @@ $('#importFile').onchange=async e=>{
 };
 const passwordVisibility=initPasswordVisibility({language:()=>data.settings.language});
 trainer=initSQ1({language:()=>data.settings.language,settings:()=>data.settings.sq1,save:prefs=>{data.settings.sq1=prefs;persist()},toast});
+algorithmLibrary=initSQ1Algorithms({language:()=>data.settings.language,toast,navigate:setPage});
 updateAI=initAI({language:()=>data.settings.language,summary:()=>trainer.summary()});
 forum=initForum({language:()=>data.settings.language,navigate:setPage});
 messenger=initMessages({language:()=>data.settings.language});
